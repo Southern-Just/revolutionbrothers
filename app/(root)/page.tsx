@@ -13,7 +13,7 @@ export default function Home() {
           <div className="grow">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">Not Yet Uhuru</h1>
             <p className="text-brand text-lg md:text-xl">
-              Our future is us and ours; we define our financial standing
+              Our future is ours to shape; Redefine the financial G-A-M-E with us
             </p>
           </div>
           <div className="mt-auto mb-12">
