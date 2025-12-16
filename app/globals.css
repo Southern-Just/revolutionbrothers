@@ -3,24 +3,57 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --brand: #4f986e;
+  --shade: #ccdae6;
+  --bank-gradient: #00C6FF;
+
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-bank-gradient: var(--bank-gradient);
+
+  --color-brand: var(--brand);
+  --color-shade: var(--shade);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
-
+/* 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-}
+} */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  
+  /* Bank Card */
+  .bank-card {
+    @apply relative flex h-[190px] w-full max-w-[320px] justify-between rounded-[20px] border border-white bg-brand shadow-sm backdrop-blur-[6px];
+  }
+
+  .bank-card_content {
+    @apply relative z-10 flex size-full max-w-57 flex-col justify-between rounded-l-[20px]  bg-black/70 px-5 pb-4 pt-5;
+  }
+
+  .bank-card_icon {
+    @apply flex size-full flex-1 flex-col items-end justify-between rounded-r-[20px] bg-brand bg-cover bg-center  bg-no-repeat py-5 pr-5;
+  }
+
+  /* Revolution-home */
+  .revolution-home button {
+    @apply text-sm text-brand bg-blue-100 w-max rounded-full py-2 px-4 
+  }
 }
