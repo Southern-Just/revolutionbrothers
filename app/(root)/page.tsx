@@ -1,5 +1,4 @@
 "use client";
-import Header from "@/components/Header";
 import HeroCarousel from "@/components/HeroCarousel";
 import { useRouter } from "next/navigation";
 

@@ -54,7 +54,7 @@ export default function Revolution() {
 
           {activeTab === "transactions" && (
             <>
-              <h1 className="text-[16px] text-foreground mb-2 ml-2">
+              <h1 className="text-[16px] text-foreground text-center mb-2 ml-2">
                 Follow up on your money <span className="text-sm ml-2 p-0.5 border rounded-sm cursor-pointer border-red-500">All</span>
               </h1>
               <RecentTransactions />
@@ -63,7 +63,7 @@ export default function Revolution() {
 
           {activeTab === "deposit" && (
             <>
-              <h1 className="text-[16px] text-foreground mb-2 ml-2">
+              <h1 className="text-[16px] text-foreground text-center mb-2 ml-2">
                 Credit or Debit your Account
               </h1>
               <DepositWithdraw />

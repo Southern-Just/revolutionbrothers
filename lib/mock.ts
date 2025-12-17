@@ -55,3 +55,65 @@ export const mockTransactions = [
     category: "monthly",
   },
 ];
+export const mockMonthlyContributions = [
+  {
+    userId: "1",
+    name: "Patrick Smith",
+    contributions: [
+      { month: "2023-09", amount: 1400 },
+      { month: "2023-10", amount: 1500 },
+      { month: "2023-11", amount: 1600 },
+      { month: "2023-12", amount: 1500 },
+      { month: "2024-01", amount: 1450 },
+      { month: "2024-02", amount: 1550 },
+    ],
+  },
+  {
+    userId: "2",
+    name: "Alicia Brown",
+    contributions: [
+      { month: "2023-09", amount: 1300 },
+      { month: "2023-10", amount: 1500 },
+      { month: "2023-11", amount: 1400 },
+      { month: "2023-12", amount: 1600 },
+      { month: "2024-01", amount: 1500 },
+      { month: "2024-02", amount: 1700 },
+    ],
+  },
+  {
+    userId: "3",
+    name: "Michael Johnson",
+    contributions: [
+      { month: "2023-09", amount: 1500 },
+      { month: "2023-10", amount: 1500 },
+      { month: "2023-11", amount: 1500 },
+      { month: "2023-12", amount: 1500 },
+      { month: "2024-01", amount: 1500 },
+      { month: "2024-02", amount: 1500 },
+    ],
+  },
+  {
+    userId: "4",
+    name: "Sophia Lee",
+    contributions: [
+      { month: "2023-09", amount: 1200 },
+      { month: "2023-10", amount: 1400 },
+      { month: "2023-11", amount: 1500 },
+      { month: "2023-12", amount: 1600 },
+      { month: "2024-01", amount: 1500 },
+      { month: "2024-02", amount: 1700 },
+    ],
+  },
+  {
+    userId: "5",
+    name: "Daniel Wilson",
+    contributions: [
+      { month: "2023-09", amount: 1600 },
+      { month: "2023-10", amount: 1500 },
+      { month: "2023-11", amount: 1550 },
+      { month: "2023-12", amount: 1500 },
+      { month: "2024-01", amount: 1450 },
+      { month: "2024-02", amount: 1500 },
+    ],
+  },
+];
