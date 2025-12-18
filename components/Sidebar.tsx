@@ -9,47 +9,55 @@ interface SidebarProps {
 const Sidebar = ({ open, onClose }: SidebarProps) => {
   return (
     <>
-      {/* Overlay */}
       {open && (
-        <div onClick={onClose} className="fixed inset-0 bg-black/50 z-40" />
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300"
+        />
       )}
 
-      {/* Panel */}
       <aside
-        className={`fixed top-0 right-0 h-full w-1/2 bg-black/70 text-white z-50
-        transform transition-transform duration-300 ease-out
-        ${open ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed top-0 right-0 h-full w-1/2 z-50
+        bg-black/60 backdrop-blur-xl text-white
+        rounded-l-3xl shadow-2xl
+        transform transition-all duration-500
+        [ease-[cubic-bezier(0.16,1,0.3,1)]]
+        ${open ? "translate-x-0 scale-100 opacity-100" : "translate-x-full scale-95 opacity-0"}`}
       >
-        <div className="px-2 py-8 space-y-6">
+        <div className="px-4 py-8 space-y-8 h-full relative">
           <button
             onClick={onClose}
-            className="text-sm text-end text-red-500 font-bold w-full"
+            className="text-sm text-end text-red-400 font-bold w-full hover:opacity-70 transition"
           >
             Close ✕
           </button>
 
           <nav className="flex flex-col space-y-6 px-4 text-lg">
-            <Link href="/finances" onClick={onClose}>
-              My Finances
-            </Link>
-            <Link href="/members" onClick={onClose}>
-              Members
-            </Link>
-            <Link href="/settings" onClick={onClose}>
-              Settings
-            </Link>
-            <Link href="/books" onClick={onClose}>
-              Books
-            </Link>
-            <Link href="/account" onClick={onClose}>
-              Account
-            </Link>
+            {[
+              ["My Finances", "/finances"],
+              ["Members", "/members"],
+              ["Settings", "/settings"],
+              ["Books", "/books"],
+              ["Account", "/account"],
+            ].map(([label, href]) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={onClose}
+                className="hover:translate-x-1 hover:text-brand transition-all duration-300"
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
-          <footer className="absolute bottom-12 text-sm w-full space-y-6 p-0.5">
+
+          <footer className="absolute bottom-10 w-full px-2 space-y-6">
             <Link href="/account" onClick={onClose}>
-              <p className="text-lg mb-6">Download Terms</p>
+              <p className="text-lg hover:opacity-70 transition">
+                Download Terms
+              </p>
             </Link>
-            <p className="text-gray-400 p-1">
+            <p className="text-gray-400 text-sm">
               &copy; 2025 Revolution Brothers. All rights reserved.
             </p>
           </footer>

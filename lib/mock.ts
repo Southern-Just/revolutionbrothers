@@ -59,6 +59,7 @@ export const mockMonthlyContributions = [
   {
     userId: "1",
     name: "Patrick Smith",
+    role: "Member",
     contributions: [
       { month: "2023-09", amount: 1400 },
       { month: "2023-10", amount: 1500 },
@@ -71,6 +72,7 @@ export const mockMonthlyContributions = [
   {
     userId: "2",
     name: "Alicia Brown",
+    role: "Treasurer",
     contributions: [
       { month: "2023-09", amount: 1300 },
       { month: "2023-10", amount: 1500 },
@@ -83,6 +85,7 @@ export const mockMonthlyContributions = [
   {
     userId: "3",
     name: "Michael Johnson",
+    role: "Secretary",
     contributions: [
       { month: "2023-09", amount: 1500 },
       { month: "2023-10", amount: 1500 },
@@ -94,7 +97,8 @@ export const mockMonthlyContributions = [
   },
   {
     userId: "4",
-    name: "Sophia Lee",
+    name: "Anne Blake",
+    role: "Chairman",
     contributions: [
       { month: "2023-09", amount: 1200 },
       { month: "2023-10", amount: 1400 },
@@ -107,6 +111,60 @@ export const mockMonthlyContributions = [
   {
     userId: "5",
     name: "Daniel Wilson",
+    role: "Member",
+    contributions: [
+      { month: "2023-09", amount: 1600 },
+      { month: "2023-10", amount: 1500 },
+      { month: "2023-11", amount: 1550 },
+      { month: "2023-12", amount: 1500 },
+      { month: "2024-01", amount: 1450 },
+      { month: "2024-02", amount: 1500 },
+    ],
+  },
+    {
+    userId: "6",
+    name: "Jennifer Davis",
+    role: "Member",
+    contributions: [
+      { month: "2023-09", amount: 1200 },
+      { month: "2023-10", amount: 1400 },
+      { month: "2023-11", amount: 1500 },
+      { month: "2023-12", amount: 1600 },
+      { month: "2024-01", amount: 1500 },
+      { month: "2024-02", amount: 1700 },
+    ],
+  },
+  {
+    userId: "7",
+    name: "Grace Miller",
+    role: "Member",
+    contributions: [
+      { month: "2023-09", amount: 1600 },
+      { month: "2023-10", amount: 1500 },
+      { month: "2023-11", amount: 1550 },
+      { month: "2023-12", amount: 1500 },
+      { month: "2024-01", amount: 1450 },
+      { month: "2024-02", amount: 1500 },
+    ],
+  },
+    {
+    userId: "8",
+    name: "Salina Martinez",
+    role: "Member",
+    contributions: [
+      { month: "2023-09", amount: 1200 },
+      { month: "2023-10", amount: 1400 },
+      { month: "2023-11", amount: 1500 },
+      { month: "2023-12", amount: 1600 },
+      { month: "2024-01", amount: 1500 },
+      { month: "2024-02", amount: 1700 },
+    ],
+  },
+  {
+    userId: "9",
+    name: "Alexander Garcia",
+    role: "Member",
+    image: "/profiles/alexander.jpg",
     contributions: [
       { month: "2023-09", amount: 1600 },
       { month: "2023-10", amount: 1500 },

@@ -9,7 +9,7 @@ const AccountCard = () => {
       <Link href={""} className="bank-card">
         <div className="bank-card_content">
           <div>
-            <h1 className="text-16 font-semibold text-white">
+            <h1 className="text-[16px] font-semibold text-white">
               Revolution Brothers
             </h1>
             <p className="font-ibm-plex-serif font-black text-white">

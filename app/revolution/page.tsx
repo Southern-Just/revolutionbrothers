@@ -16,8 +16,8 @@ export default function Revolution() {
       <Header />
 
       <section className="w-[94%] mx-auto items-center justify-center">
-        <div className="space-y-2 mb-8">
-          <h1 className="font-bold text-4xl">
+        <div className="space-y-2 mb-8 text-shadow-md text-shadow-brand/90">
+          <h1 className="font-bold text-2xl px-4 shadow-xl shadow-brand/40">
             Revolution Brother&apos;s Finances
           </h1>
           <p className="text-end mr-4">Account as of 23-04-2025</p>
