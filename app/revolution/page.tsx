@@ -5,18 +5,21 @@ import AccountCard from "@/components/AccountCard";
 import Header from "@/components/Header";
 import RecentTransactions from "@/components/RecentTransactions";
 import DepositWithdraw from "@/components/DepositWithdraw";
+import { mockData } from "@/lib/mock";
 
 type Tab = "transactions" | "deposit";
+
+const totalGroupBalance = mockData.members
+  .flatMap((member) => member.contributions)
+  .reduce((sum, contrib) => sum + contrib.amount, 0);
 
 export default function Revolution() {
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
 
   return (
     <main>
-      <Header />
-
       <section className="w-[94%] mx-auto items-center justify-center">
-        <div className="space-y-2 mb-8 text-shadow-md text-shadow-brand/90">
+        <div className="space-y-2 mb-8">
           <h1 className="font-bold text-2xl px-4 shadow-xl shadow-brand/40">
             Revolution Brother&apos;s Finances
           </h1>
@@ -24,7 +27,11 @@ export default function Revolution() {
         </div>
 
         <div className="flex justify-center">
-          <AccountCard />
+          <AccountCard
+            fullName="Revolution Brothers"
+            username="Revolution"
+            balance={totalGroupBalance}
+          />
         </div>
 
         <div className="mt-6">

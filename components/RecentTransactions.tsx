@@ -1,6 +1,6 @@
 "use client";
 
-import { mockTransactions } from "@/lib/mock";
+import { mockData } from "@/lib/mock"; // Updated import
 import React from "react";
 
 const formatAmount = (amount: number) =>
@@ -31,12 +31,14 @@ const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category }) => (
   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-100">
     <div className="w-1.5 h-1.5 rounded-full bg-gray-500" />
     <span className="text-[10px] sm:text-xs font-medium text-gray-700">
-      {category}
+      {category.charAt(0).toUpperCase() + category.slice(1)}
     </span>
   </div>
 );
 
 export default function RecentTransactions() {
+  const transactions = mockData.recentTransactions; // Now using unified mockData
+
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200">
@@ -64,7 +66,7 @@ export default function RecentTransactions() {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {mockTransactions.map((transaction) => {
+          {transactions.map((transaction) => {
             const isDebit = transaction.type === "debit";
             const formattedAmount = formatAmount(transaction.amount);
 
@@ -90,7 +92,7 @@ export default function RecentTransactions() {
                         : "text-green-600"
                     }`}
                   >
-                    {isDebit ? `-${formattedAmount}` : formattedAmount}
+                    {isDebit ? `-${formattedAmount}` : `+${formattedAmount}`}
                   </span>
                 </td>
                 <td className="px-3 sm:px-6 py-4 whitespace-nowrap">

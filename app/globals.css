@@ -57,3 +57,52 @@ body {
     @apply text-sm text-brand bg-blue-100 w-max rounded-full py-2 px-4 
   }
 }
+/* ---------- Smooth auth reveal ---------- */
+.auth-reveal {
+  overflow: hidden;
+  transition:
+    max-height 400ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 300ms ease,
+    transform 300ms ease;
+}
+
+.auth-hidden {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.auth-visible {
+  max-height: 500px; /* enough for form */
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Input keystroke feel ---------- */
+.auth-input {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 80ms ease;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.01);
+}
+
+/* ---------- Button press feedback ---------- */
+.auth-button {
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 150ms ease;
+}
+
+.auth-button:active {
+  transform: scale(0.97);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+}

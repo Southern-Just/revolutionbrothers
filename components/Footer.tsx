@@ -1,8 +1,8 @@
 
 const Footer = () => {
   return (
-    <div>
-      <p className="text-gray-400 p-1 bg-green-500absolute bottom-0 h-screen w-full text-xs text-center">
+    <div className="w-full fixed bottom-0">
+      <p className="text-gray-400 fixed text-sm  text-center">
         &copy; 2025 Revolution Brothers. All rights reserved.
       </p>
     </div>

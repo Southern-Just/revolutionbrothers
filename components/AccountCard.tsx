@@ -1,45 +1,61 @@
-import Image from 'next/image'
+import Image from 'next/image';
 import Link from 'next/link';
 
+type AccountCardProps = {
+  fullName: string;
+  username: string;
+  balance?: number;
+  accountMask?: string;
+  linkHref?: string;
+};
 
-const AccountCard = () => {
+const AccountCard = ({
+  fullName,
+  username,
+  balance = 0,
+  accountMask = "5678",
+  linkHref = "/finances"
+}: AccountCardProps) => {
+  const formattedBalance = balance != null 
+    ? balance.toLocaleString("en-KE") 
+    : "0";
 
   return (
     <div className="flex flex-col">
-      <Link href={""} className="bank-card">
+      <Link href={linkHref} className="bank-card">
         <div className="bank-card_content">
           <div>
             <h1 className="text-[16px] font-semibold text-white">
-              Revolution Brothers
+              {fullName}
             </h1>
             <p className="font-ibm-plex-serif font-black text-white">
-             13500
+              KSh {formattedBalance}
             </p>
           </div>
 
           <article className="flex flex-col gap-2">
             <div className="flex justify-between">
               <h1 className="text-12 font-semibold text-white">
-            Revolution
+                {username}
               </h1>
               <h2 className="text-12 font-semibold text-white">
-              ●● / ●●
+                ●● / ●●
               </h2>
             </div>
             <p className="text-14 font-semibold tracking-[1.1px] text-white">
-              ●●●● ●●●● ●●●● <span className="text-16">account?.mask</span>
+              ●●●● ●●●● ●●●● <span className="text-16">{accountMask}</span>
             </p>
           </article>
         </div>
 
         <div className="bank-card_icon">
-          <Image 
+          <Image
             src="/icons/Paypass.svg"
             width={20}
             height={24}
             alt="pay"
           />
-          <Image 
+          <Image
             src="/icons/mastercard.svg"
             width={45}
             height={32}
@@ -48,7 +64,7 @@ const AccountCard = () => {
           />
         </div>
 
-        <Image 
+        <Image
           src="/icons/lines.png"
           width={316}
           height={190}
@@ -56,9 +72,8 @@ const AccountCard = () => {
           className="absolute top-0 left-0"
         />
       </Link>
-
     </div>
-  )
-}
+  );
+};
 
-export default AccountCard
+export default AccountCard;
