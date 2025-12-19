@@ -7,6 +7,7 @@ import RecentTransactions from "@/components/RecentTransactions";
 import DepositWithdraw from "@/components/DepositWithdraw";
 import { mockData } from "@/lib/mock";
 import Footer from "@/components/Footer";
+import Transactions from "@/components/Transactions";
 
 type Tab = "transactions" | "deposit";
 
@@ -16,8 +17,10 @@ const totalGroupBalance = mockData.members
 
 export default function Revolution() {
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
-
-  const firstVisit = typeof window !== "undefined" && localStorage.getItem("firstVisit") === null;
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const firstVisit =
+    typeof window !== "undefined" &&
+    localStorage.getItem("firstVisit") === null;
   const [loading, setLoading] = useState(firstVisit);
   const [progress, setProgress] = useState(0);
 
@@ -110,9 +113,17 @@ export default function Revolution() {
             <>
               <h1 className="text-[16px] text-foreground text-center mb-2 ml-2">
                 Follow up on your money{" "}
-                <span className="text-sm ml-2 p-0.5 border rounded-sm cursor-pointer border-red-500">
+                <span
+                  className="text-sm ml-2 p-0.5 border rounded-sm cursor-pointer border-red-500"
+                  onClick={() => {
+                    setShowAllTransactions(true);
+                  }}
+                >
                   All
                 </span>
+                {showAllTransactions && (
+                  <Transactions onClose={() => setShowAllTransactions(false)} />
+                )}
               </h1>
               <RecentTransactions />
             </>
@@ -127,7 +138,7 @@ export default function Revolution() {
           )}
         </div>
       </section>
-      <Footer/>
+      <Footer />
     </main>
   );
 }
