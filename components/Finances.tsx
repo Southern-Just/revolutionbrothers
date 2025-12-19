@@ -54,13 +54,18 @@ const Finances = () => {
       </div>
 
       <section className="space-y-2">
-        <p className="text-sm font-semibold text-gray-500 text-end mr-6">As of {asOfDate}</p>
+        <p className="text-sm font-semibold text-gray-500 text-end mr-6">
+          As of {asOfDate}
+        </p>
 
-        <div className="bg-white/5 px-4 py-2 rounded-xl">
-          <p className="text-md text-brand">Average Monthly Contribution</p>
-          <p className="text-xl font-semibold">
-            KSh {averageMonthly.toLocaleString("en-KE")}
-          </p>
+        <div className="px-1 py-2 rounded-xl flex justify-center pr-4 gap-4 items-center">
+          <div className="space-y-2">
+            <p className="text-md text-brand text-center">Average Monthly Contribution</p>
+            <p className="text-xl font-semibold text-center">
+              KSh {averageMonthly.toLocaleString("en-KE")}
+            </p>
+          </div>
+          <button className="border border-brand bg-brand/10 rounded-lg">My Transactions</button>
         </div>
       </section>
 
@@ -89,7 +94,7 @@ const Finances = () => {
             ))}
         </div>
       </section>
-      <Footer/>
+      <Footer />
     </main>
   );
 };
