@@ -59,10 +59,10 @@ const Finances = () => {
         </p>
 
         <div className="px-4 py-2 rounded-xl flex justify-between pr-4 gap-4 items-center">
-            <p className="text-md  text-center">Monthly Average </p>
-            <p className="text-xl text-brand font-semibold text-center">
-              KSh {averageMonthly.toLocaleString("en-KE")}
-            </p>
+          <p className="text-md  text-center">Monthly Average </p>
+          <p className="text-xl text-brand font-semibold text-center">
+            KSh {averageMonthly.toLocaleString("en-KE")}
+          </p>
         </div>
       </section>
 
@@ -89,6 +89,11 @@ const Finances = () => {
                 </p>
               </div>
             ))}
+        </div>
+        <div className="flex justify-end">
+          <button className="border border-brand bg-brand/10 rounded-lg p-1">
+            My Transactions
+          </button>
         </div>
       </section>
       <Footer />
