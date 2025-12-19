@@ -58,7 +58,7 @@ const Finances = () => {
 
         <div className="bg-white/5 px-4 py-2 rounded-xl">
           <p className="text-md text-brand">Average Monthly Contribution</p>
-          <p className="text-2xl font-semibold">
+          <p className="text-xl font-semibold">
             KSh {averageMonthly.toLocaleString("en-KE")}
           </p>
         </div>
