@@ -118,7 +118,7 @@ export const mockData = {
       userId: "9",
       name: "Alexander Garcia",
       role: "Member",
-      image: "/profiles/alexander.jpg",
+      image:"/images/parachute.png",
       contributions: [
         { month: "2023-09", amount: 1600 },
         { month: "2023-10", amount: 1500 },

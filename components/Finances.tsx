@@ -1,9 +1,9 @@
-// app/finances/page.tsx (or wherever your Finances component is)
 "use client";
 import { mockData } from "@/lib/mock";
-import AccountCard from "./AccountCard";  // Adjust path as needed
+import AccountCard from "./AccountCard";
 import { useRouter } from "next/navigation";
 import Header from "./Header";
+import Footer from "./Footer";
 
 const ACTIVE_USER_ID = "1"; // Change or make dynamic as needed
 
@@ -37,9 +37,11 @@ const Finances = () => {
   const username = user.name.split(" ")[0];
 
   return (
-    <main className="min-h-screen text-foreground px-4 py-4 space-y-3">
+    <main className="min-h-screen text-foreground px-4 py-4 space-y-3 page-animate">
       <h1 className="text-2xl indent-4 font-bold">Mine Finances</h1>
-      <p className="text-[11px] text-center text-gray-500">personalization done to perfection by revolution engine</p>
+      <p className="text-[12px] text-center text-gray-500">
+        personalization done to perfection by revolution engine
+      </p>
 
       <div className="w-[90%] mx-auto">
         <AccountCard
@@ -52,17 +54,7 @@ const Finances = () => {
       </div>
 
       <section className="space-y-2">
-        <div className="bg-white/5 p-4 space-y-4 rounded-xl">
-          <p className="text-md text-brand">Total Savings</p>
-          <div className="flex justify-between items-center">
-            <p className="text-2xl font-semibold">
-              KSh {totalSavings.toLocaleString("en-KE")}
-            </p>
-            <p className="text-sm font-semibold text-gray-500">
-              As of {asOfDate}
-            </p>
-          </div>
-        </div>
+        <p className="text-sm font-semibold text-gray-500 text-end mr-6">As of {asOfDate}</p>
 
         <div className="bg-white/5 px-4 py-2 rounded-xl">
           <p className="text-md text-brand">Average Monthly Contribution</p>
@@ -97,6 +89,7 @@ const Finances = () => {
             ))}
         </div>
       </section>
+      <Footer/>
     </main>
   );
 };

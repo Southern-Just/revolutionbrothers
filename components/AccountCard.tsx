@@ -70,6 +70,8 @@ const AccountCard = ({
           height={190}
           alt="lines"
           className="absolute top-0 left-0"
+          loading="eager"
+
         />
       </Link>
     </div>

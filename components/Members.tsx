@@ -30,8 +30,8 @@ const Members = () => {
   return (
     <div className="min-h-screen items-center flex justify-center px-2">
       <div className=" flex flex-col items-center space-y-4 py-3">
-        <h1 className="text-2xl font-bold text-center">
-          Revolution Brothers Members : KIKOSI
+        <h1 className="text-xl font-bold text-center">
+          Revolution Brothers Members :<span className="text-brand"> KIKOSI</span>
         </h1>
         <p className="text-gray-400 text-lg text-center">Officials 2025–2026</p>
 
@@ -48,31 +48,6 @@ const Members = () => {
                 <p className="text-xs text-gray-400">{member.role}</p>
               </div>
 
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-64 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition pointer-events-none z-20">
-                <div className="rounded-2xl bg-white/10 backdrop-blur p-4 shadow-lg flex flex-col space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h2 className="text-lg font-semibold">{member.name}</h2>
-                      <p className="text-sm text-gray-400">{member.role}</p>
-                    </div>
-                    <div className="w-12 h-12 rounded-full overflow-hidden border border-black/30 p-2 flex items-center justify-center bg-gray-200">
-                      <Image
-                        src={member.image || "/icons/profiles.svg"}
-                        alt={member.name}
-                        width={40}
-                        height={40}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-end">
-                    <span className="text-sm text-gray-400">
-                      ID: {member.userId}
-                    </span>
-                    <span className="text-xs italic text-gray-400">Signature</span>
-                  </div>
-                </div>
-              </div>
             </div>
           ))}
         </div>
@@ -86,7 +61,7 @@ const Members = () => {
                 key={member.userId}
                 onClick={() => router.push("/finances")}
                 className={`w-full max-w-xs cursor-pointer rounded-2xl bg-white/5 p-4 shadow hover:bg-white/10 transition ${
-                  isActive ? "border-2 border-brand" : ""
+                  isActive ? "border border-brand" : ""
                 }`}
               >
                 <div className="flex justify-between items-center">
@@ -94,13 +69,13 @@ const Members = () => {
                     <h2 className="text-lg font-semibold">{member.name}</h2>
                     <p className="text-sm text-gray-400">{member.role}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-black/30 p-2 flex items-center justify-center bg-gray-200">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border border-black/30 p-0.5 flex items-center justify-center bg-gray-200">
                     <Image
                       src={member.image || "/icons/profiles.svg"}
                       alt={member.name}
                       width={40}
                       height={40}
-                      className="object-cover w-full h-full"
+                      className="object-cover w-full h-full rounded-full"
                     />
                   </div>
                 </div>

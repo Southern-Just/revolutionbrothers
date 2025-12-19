@@ -22,7 +22,11 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
         rounded-l-3xl shadow-2xl
         transform transition-all duration-500
         [ease-[cubic-bezier(0.16,1,0.3,1)]]
-        ${open ? "translate-x-0 scale-100 opacity-100" : "translate-x-full scale-95 opacity-0"}`}
+        ${
+          open
+            ? "translate-x-0 scale-100 opacity-100"
+            : "translate-x-full scale-95 opacity-0"
+        }`}
       >
         <div className="px-4 py-8 space-y-8 h-full relative">
           <button
@@ -36,9 +40,9 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             {[
               ["My Finances", "/finances"],
               ["Members", "/members"],
-              ["Settings", "/settings"],
-              ["Books", "/books"],
               ["Account", "/account"],
+              ["Books", "/books"],
+              ["Settings", "/settings"],
             ].map(([label, href]) => (
               <Link
                 key={href}
