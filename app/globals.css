@@ -120,7 +120,8 @@ body {
 .page-animate {
   animation: pageLoad 0.6s ease-out forwards;
 }
-/* Slide up from bottom animation */
+
+
 @keyframes slideUp {
   0% {
     transform: translateY(100%);
@@ -132,7 +133,6 @@ body {
   }
 }
 
-/* Slide down for exit (optional if you want a smooth close) */
 @keyframes slideDown {
   0% {
     transform: translateY(0);
@@ -151,3 +151,4 @@ body {
 .modal-slide-down {
   animation: slideDown 0.5s ease-in forwards;
 }
+

@@ -4,11 +4,14 @@ import AccountCard from "./AccountCard";
 import { useRouter } from "next/navigation";
 import Header from "./Header";
 import Footer from "./Footer";
+import Transactions from "./Transactions";
+import { useState } from "react";
 
 const ACTIVE_USER_ID = "1"; // Change or make dynamic as needed
 
 const Finances = () => {
   const router = useRouter();
+const [showTransactions, setShowTransactions] = useState(false);
 
   const user = mockData.members.find((u) => u.userId === ACTIVE_USER_ID);
 
@@ -91,10 +94,18 @@ const Finances = () => {
             ))}
         </div>
         <div className="flex justify-end">
-          <button className="border border-brand bg-brand/10 rounded-lg p-1">
+          <button className="border border-brand bg-brand/10 rounded-lg p-1"
+              onClick={() => setShowTransactions(true)}
+>
             My Transactions
           </button>
         </div>
+        {showTransactions && (
+  <Transactions
+    onClose={() => setShowTransactions(false)}
+    userId={user.userId}
+  />
+)}
       </section>
       <Footer />
     </main>
