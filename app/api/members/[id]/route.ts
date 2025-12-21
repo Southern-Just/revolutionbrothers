@@ -1,20 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/database/db";
 import { members, userProfiles } from "@/lib/database/schema";
 import { eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 
-type Params = {
-  params: {
-    id: string;
-  };
-};
-
-export async function GET(_: Request, { params }: Params) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const result = await db
     .select({
@@ -34,20 +26,15 @@ export async function GET(_: Request, { params }: Params) {
     .where(eq(members.id, params.id))
     .limit(1);
 
-  if (!result.length) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
-
+  if (!result.length) return NextResponse.json({ message: "Not found" }, { status: 404 });
   return NextResponse.json(result[0]);
 }
 
-export async function PATCH(req: Request, { params }: Params) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json()) as {
+  const body = await req.json() as {
     role?: "chairperson" | "secretary" | "treasurer" | "member";
     isActive?: boolean;
     name?: string;
@@ -62,9 +49,7 @@ export async function PATCH(req: Request, { params }: Params) {
     .where(eq(members.id, params.id))
     .limit(1);
 
-  if (!member) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
+  if (!member) return NextResponse.json({ message: "Not found" }, { status: 404 });
 
   if (body.role || body.isActive !== undefined) {
     await db
@@ -76,21 +61,14 @@ export async function PATCH(req: Request, { params }: Params) {
       .where(eq(members.id, params.id));
   }
 
-  if (
-    body.name ||
-    body.username ||
-    body.phone ||
-    body.profileImage
-  ) {
+  if (body.name || body.username || body.phone || body.profileImage) {
     await db
       .update(userProfiles)
       .set({
         ...(body.name && { name: body.name }),
         ...(body.username && { username: body.username }),
         ...(body.phone && { phone: body.phone }),
-        ...(body.profileImage && {
-          profileImage: body.profileImage,
-        }),
+        ...(body.profileImage && { profileImage: body.profileImage }),
       })
       .where(eq(userProfiles.userId, member.userId));
   }
@@ -114,20 +92,15 @@ export async function PATCH(req: Request, { params }: Params) {
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_: Request, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const [deleted] = await db
     .delete(members)
     .where(eq(members.id, params.id))
     .returning();
 
-  if (!deleted) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
-
+  if (!deleted) return NextResponse.json({ message: "Not found" }, { status: 404 });
   return NextResponse.json({ message: "Deleted" });
 }

@@ -21,13 +21,18 @@ const Members = () => {
 
   useEffect(() => {
     const fetchMembers = async () => {
-      const res = await fetch("/api/members");
-      if (!res.ok) {
+      try {
+        const res = await fetch("/api/members");
+        if (!res.ok) {
+          router.replace("/");
+          return;
+        }
+        const data: Member[] = await res.json();
+        setMembers(data);
+      } catch (err) {
+        console.error(err);
         router.replace("/");
-        return;
       }
-      const data: Member[] = await res.json();
-      setMembers(data);
     };
     fetchMembers();
   }, [router]);
@@ -100,7 +105,7 @@ const Members = () => {
                   </div>
                 </div>
                 <div className="flex justify-between items-end mt-3">
-                  <span className="text-[10px] text-gray-400">{member.userId}</span>
+                  <span className="text-[10px] text-gray-400">ID: {member.userId}</span>
                   <span className="text-xs italic text-gray-400">Signature</span>
                 </div>
               </div>
