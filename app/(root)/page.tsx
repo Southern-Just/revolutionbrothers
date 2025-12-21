@@ -1,8 +1,8 @@
 "use client";
 
 import HeroCarousel from "@/components/HeroCarousel";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 
 interface AuthResponse {
   message: string;
@@ -11,13 +11,25 @@ interface AuthResponse {
 
 export default function Home() {
   const router = useRouter();
-  const [showAuth, setShowAuth] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get auth mode from URL or default to none
+  const authMode = searchParams.get("auth");
+  const isSignUp = authMode === "signup";
+  const showAuth = authMode === "signin" || authMode === "signup";
+
+  // Update URL based on auth state
+  useEffect(() => {
+    // Clean up URL on component mount if it's invalid
+    if (!showAuth && authMode) {
+      router.replace("/", { scroll: false });
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,11 +48,10 @@ export default function Home() {
         if (!res.ok) throw new Error("message" in data ? data.message : "Signup failed");
 
         alert("Account created successfully");
-        setShowAuth(false);
-        setIsSignUp(false);
         setEmail("");
         setPassword("");
         setPin("");
+        router.replace("/", { scroll: false });
       } else {
         const res = await fetch("/api/auth/signin", {
           method: "POST",
@@ -64,6 +75,23 @@ export default function Home() {
     }
   };
 
+  const handleGetStarted = () => {
+    router.push("/?auth=signin", { scroll: false });
+  };
+
+  const handleToggleSignUp = () => {
+    const newMode = isSignUp ? "signin" : "signup";
+    router.push(`/?auth=${newMode}`, { scroll: false });
+  };
+
+  // const handleCloseAuth = () => {
+  //   router.replace("/", { scroll: false });
+  //   setEmail("");
+  //   setPassword("");
+  //   setPin("");
+  //   setError(null);
+  // };
+
   return (
     <main className="min-h-screen">
       <HeroCarousel />
@@ -83,74 +111,77 @@ export default function Home() {
               <button
                 disabled={loading}
                 className="cursor-pointer bg-white text-black hover:bg-gray-100 font-semibold py-4 px-10 rounded-full text-lg transition shadow-lg border-t border-gray-300 shadow-gray-400"
-                onClick={() => setShowAuth(true)}
+                onClick={handleGetStarted}
               >
                 Get Started
               </button>
             ) : (
-              <form
-                onSubmit={handleSubmit}
-                className="w-full max-w-sm flex flex-col gap-4"
-              >
-                <input
-                  type="email"
-                  required
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border px-4 py-3 text-base"
-                />
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    required
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="flex-1 rounded-xl border px-4 py-3 text-base"
-                  />
-                  {isSignUp && (
-                    <input
-                      type="text"
-                      required
-                      maxLength={4}
-                      placeholder="PIN"
-                      value={pin}
-                      onChange={(e) =>
-                        setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                      }
-                      className="w-20 rounded-xl border px-2 py-3 text-sm text-center"
-                    />
-                  )}
-                </div>
-
-                {error && <p className="text-red-500 text-sm">{error}</p>}
-
-                <div className="flex justify-between items-center text-sm text-gray-500">
-                  <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isSignUp}
-                      onChange={(e) => setIsSignUp(e.target.checked)}
-                      className="accent-brand"
-                    />
-                    Sign Up
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-black text-white font-semibold py-4 rounded-full text-lg"
+              <div className="w-full max-w-sm mt-4">
+                <form
+                  onSubmit={handleSubmit}
+                  className="w-full max-w-sm flex flex-col gap-4"
                 >
-                  {loading
-                    ? "Processing..."
-                    : isSignUp
-                    ? "Join Us"
-                    : "Continue"}
-                </button>
-              </form>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border px-4 py-3 text-base"
+                  />
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      required
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="flex-1 w-40 rounded-xl border px-4 py-3 text-base"
+                    />
+                    {isSignUp && (
+                      <input
+                        type="text"
+                        required
+                        maxLength={4}
+                        placeholder="PIN"
+                        value={pin}
+                        onChange={(e) =>
+                          setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                        }
+                        className="w-20 rounded-xl border px-2 py-3 text-sm text-center"
+                      />
+                    )}
+                  </div>
+
+                  {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                  <div className="flex justify-between items-center text-sm text-gray-500">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSignUp}
+                        onChange={handleToggleSignUp}
+                        className="accent-brand"
+                      />
+                      Sign Up
+                    </label>
+
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-black text-white font-semibold py-4 rounded-full text-lg"
+                  >
+                    {loading
+                      ? "Processing..."
+                      : isSignUp
+                      ? "Join Us"
+                      : "Continue"}
+                  </button>
+                </form>
+              </div>
             )}
           </div>
         </div>

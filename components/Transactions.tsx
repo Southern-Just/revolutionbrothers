@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { mockData } from "@/lib/mock";
+import { useEffect, useMemo, useState } from "react";
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -20,11 +19,23 @@ const formatDateTime = (date: Date) =>
     hour12: true,
   }).format(date);
 
+interface Transaction {
+  id: string;
+  userId: string;
+  name: string;
+  amount: string;
+  type: "credit" | "debit";
+  status: string;
+  category: string;
+  transactionCode: string;
+  occurredAt: string;
+}
+
 interface CategoryBadgeProps {
   category: string;
 }
 
-const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category }) => (
+const CategoryBadge = ({ category }: CategoryBadgeProps) => (
   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-100">
     <div className="w-1.5 h-1.5 rounded-full bg-gray-500" />
     <span className="text-[10px] sm:text-xs font-medium text-gray-700">
@@ -33,49 +44,60 @@ const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category }) => (
   </div>
 );
 
-interface AllTransactionsProps {
+interface TransactionsProps {
   onClose: () => void;
   userId?: string;
 }
 
-export default function Transactions({ onClose, userId }: AllTransactionsProps) {
+export default function Transactions({ onClose, userId }: TransactionsProps) {
   const [closing, setClosing] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const transactions = userId
-    ? mockData.members
-        .filter((member) => member.userId === userId)
-        .flatMap((member, idx) =>
-          member.contributions.map((c, i) => ({
-            id: `${member.userId}-${i}`,
-            name: member.name,
-            amount: c.amount,
-            type: Math.random() > 0.5 ? "credit" : "debit",
-            status: "completed",
-            date: `${c.month}-01T12:00:00Z`,
-            transactionCode: `TRX-${member.userId}-${i}`,
-            category: "monthly",
-          }))
-        )
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    : mockData.members
-        .flatMap((member) =>
-          member.contributions.map((c, i) => ({
-            id: `${member.userId}-${i}`,
-            name: member.name,
-            amount: c.amount,
-            type: Math.random() > 0.5 ? "credit" : "debit",
-            status: "completed",
-            date: `${c.month}-01T12:00:00Z`,
-            transactionCode: `TRX-${member.userId}-${i}`,
-            category: "monthly",
-          }))
-        )
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch("/api/transactions");
+        if (!res.ok) throw new Error();
+
+        const data = (await res.json()) as Transaction[];
+        setTransactions(data);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  const filtered = useMemo(() => {
+    return userId
+      ? transactions.filter((t) => t.userId === userId)
+      : transactions;
+  }, [transactions, userId]);
+
+  const sorted = useMemo(
+    () =>
+      [...filtered].sort(
+        (a, b) =>
+          new Date(a.occurredAt).getTime() -
+          new Date(b.occurredAt).getTime()
+      ),
+    [filtered]
+  );
 
   const handleClose = () => {
     setClosing(true);
     setTimeout(onClose, 500);
   };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
+        Loading…
+      </div>
+    );
+  }
 
   return (
     <div
@@ -84,7 +106,9 @@ export default function Transactions({ onClose, userId }: AllTransactionsProps) 
       }`}
     >
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">{userId ? "My Transactions" : "All Transactions"}</h2>
+        <h2 className="text-xl font-bold">
+          {userId ? "My Transactions" : "All Transactions"}
+        </h2>
         <button
           onClick={handleClose}
           className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-sm"
@@ -98,80 +122,80 @@ export default function Transactions({ onClose, userId }: AllTransactionsProps) 
           <thead className="bg-gray-50">
             <tr>
               {!userId && (
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Name
                 </th>
               )}
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Amount
               </th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Status
               </th>
-              <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Date
               </th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Transaction Code
               </th>
-              <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Category
               </th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Month
               </th>
             </tr>
           </thead>
+
           <tbody className="bg-white divide-y divide-gray-200">
-            {transactions.map((transaction, index) => {
-              const isDebit = transaction.type === "debit";
-              const formattedAmount = formatAmount(transaction.amount);
-              const currentMonth = new Date(transaction.date).toLocaleString("en-US", {
+            {sorted.map((t, index) => {
+              const isDebit = t.type === "debit";
+              const amount = formatAmount(Number(t.amount));
+              const date = new Date(t.occurredAt);
+              const currentMonth = date.toLocaleString("en-US", {
                 month: "long",
                 year: "numeric",
               });
+
               const showMonth =
                 index === 0 ||
                 currentMonth !==
-                  new Date(transactions[index - 1].date).toLocaleString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  });
+                  new Date(sorted[index - 1].occurredAt).toLocaleString(
+                    "en-US",
+                    { month: "long", year: "numeric" }
+                  );
 
               return (
-                <tr
-                  key={transaction.id}
-                  className={isDebit ? "bg-red-50" : "bg-green-50"}
-                >
+                <tr key={t.id} className={isDebit ? "bg-red-50" : "bg-green-50"}>
                   {!userId && (
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {transaction.name.replace(/[^\w\s]/gi, "")}
+                        {t.name}
                       </div>
                     </td>
                   )}
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4">
                     <span
                       className={`text-sm font-semibold ${
                         isDebit ? "text-red-600" : "text-green-600"
                       }`}
                     >
-                      {isDebit ? `-${formattedAmount}` : `+${formattedAmount}`}
+                      {isDebit ? `-${amount}` : `+${amount}`}
                     </span>
                   </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                    <CategoryBadge category={transaction.status} />
+                  <td className="px-3 sm:px-6 py-4">
+                    <CategoryBadge category={t.status} />
                   </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDateTime(new Date(transaction.date))}
+                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
+                    {formatDateTime(date)}
                   </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.transactionCode}
+                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
+                    {t.transactionCode}
                   </td>
-                  <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                    <CategoryBadge category={transaction.category} />
+                  <td className="hidden md:table-cell px-6 py-4">
+                    <CategoryBadge category={t.category} />
                   </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-[9px] text-gray-400">
+                  <td className="px-3 sm:px-6 py-4 text-[9px] text-gray-400">
                     {showMonth ? currentMonth : ""}
                   </td>
                 </tr>
@@ -180,31 +204,30 @@ export default function Transactions({ onClose, userId }: AllTransactionsProps) 
           </tbody>
         </table>
       </div>
+
       <div className="flex justify-end mt-4">
         <button
           onClick={() => {
-            const csvContent =
+            const csv =
               "data:text/csv;charset=utf-8," +
-              transactions
+              sorted
                 .map((t) =>
                   [
                     !userId ? t.name : "",
                     t.amount,
                     t.type,
                     t.status,
-                    t.date,
+                    t.occurredAt,
                     t.transactionCode,
                     t.category,
                   ].join(",")
                 )
                 .join("\n");
-            const encodedUri = encodeURI(csvContent);
+
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "transactions.csv");
-            document.body.appendChild(link);
+            link.href = encodeURI(csv);
+            link.download = "transactions.csv";
             link.click();
-            document.body.removeChild(link);
           }}
           className="px-4 py-2 rounded-lg bg-brand text-white hover:bg-brand/80"
         >

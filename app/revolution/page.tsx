@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
 import RecentTransactions from "@/components/RecentTransactions";
@@ -11,18 +12,48 @@ import Transactions from "@/components/Transactions";
 
 type Tab = "transactions" | "deposit";
 
+type Member = {
+  id: string;
+  userId: string;
+  role: string;
+  isActive: boolean;
+};
+
 const totalGroupBalance = mockData.members
   .flatMap((member) => member.contributions)
   .reduce((sum, contrib) => sum + contrib.amount, 0);
 
 export default function Revolution() {
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [member, setMember] = useState<Member | null>(null);
+
   const firstVisit =
     typeof window !== "undefined" &&
     localStorage.getItem("firstVisit") === null;
+
   const [loading, setLoading] = useState(firstVisit);
   const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/members")
+      .then(async (res) => {
+        if (res.status === 401) {
+          router.replace("/");
+          return;
+        }
+
+        const data = (await res.json()) as Member[];
+        setMember(data[0] ?? null);
+        setAuthChecked(true);
+      })
+      .catch(() => {
+        router.replace("/signin");
+      });
+  }, [router]);
 
   useEffect(() => {
     if (!loading) return;
@@ -47,9 +78,9 @@ export default function Revolution() {
     return () => clearInterval(interval);
   }, [loading]);
 
-  if (loading) {
+  if (!authChecked || loading) {
     return (
-      <div className="flex flex-col items-center justify-start mt-22 h-screen gap-4 bg-gray-50">
+      <div className="flex flex-col items-center justify-center h-screen gap-4 bg-gray-50">
         <Image
           src="/icons/loader1.svg"
           alt="Loading..."
@@ -61,7 +92,7 @@ export default function Revolution() {
           <div
             className="h-4 bg-brand transition-all duration-75"
             style={{ width: `${progress}%` }}
-          ></div>
+          />
         </div>
         <p className="text-gray-700 text-sm">
           Welcome: setting you up in a few...
@@ -79,6 +110,7 @@ export default function Revolution() {
           </h1>
           <p className="text-end mr-4">Account as of 23-04-2025</p>
         </div>
+
         <div className="flex justify-center">
           <AccountCard
             fullName="Revolution Brothers"
@@ -86,6 +118,7 @@ export default function Revolution() {
             balance={totalGroupBalance}
           />
         </div>
+
         <div className="mt-6">
           <div className="flex justify-center gap-2 mb-4">
             <button
@@ -109,15 +142,14 @@ export default function Revolution() {
               Deposit | Withdraw
             </button>
           </div>
+
           {activeTab === "transactions" && (
             <>
               <h1 className="text-[16px] text-foreground text-center mb-2 ml-2">
                 Follow up on your money{" "}
                 <span
                   className="text-sm ml-2 p-0.5 border rounded-sm cursor-pointer border-red-500"
-                  onClick={() => {
-                    setShowAllTransactions(true);
-                  }}
+                  onClick={() => setShowAllTransactions(true)}
                 >
                   All
                 </span>
@@ -128,6 +160,7 @@ export default function Revolution() {
               <RecentTransactions />
             </>
           )}
+
           {activeTab === "deposit" && (
             <>
               <h1 className="text-[16px] text-foreground text-center mb-2 ml-2">
@@ -137,7 +170,14 @@ export default function Revolution() {
             </>
           )}
         </div>
+
+        {member && (
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Welcome member
+          </p>
+        )}
       </section>
+
       <Footer />
     </main>
   );

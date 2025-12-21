@@ -1,7 +1,6 @@
 "use client";
 
-import { mockData } from "@/lib/mock"; // Updated import
-import React from "react";
+import { useEffect, useState } from "react";
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -23,11 +22,22 @@ const formatDateTime = (date: Date) =>
 const removeSpecialCharacters = (text: string) =>
   text.replace(/[^\w\s]/gi, "");
 
+interface Transaction {
+  id: string;
+  name: string;
+  amount: string;
+  type: "credit" | "debit";
+  status: string;
+  category: string;
+  transactionCode: string;
+  occurredAt: string;
+}
+
 interface CategoryBadgeProps {
   category: string;
 }
 
-const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category }) => (
+const CategoryBadge = ({ category }: CategoryBadgeProps) => (
   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-100">
     <div className="w-1.5 h-1.5 rounded-full bg-gray-500" />
     <span className="text-[10px] sm:text-xs font-medium text-gray-700">
@@ -37,73 +47,108 @@ const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category }) => (
 );
 
 export default function RecentTransactions() {
-  const transactions = mockData.recentTransactions; // Now using unified mockData
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch("/api/transactions");
+        if (!res.ok) throw new Error();
+
+        const data = (await res.json()) as Transaction[];
+
+        const recent = data
+          .sort(
+            (a, b) =>
+              new Date(b.occurredAt).getTime() -
+              new Date(a.occurredAt).getTime()
+          )
+          .slice(0, 6);
+
+        setTransactions(recent);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="rounded-lg border border-gray-200 p-4 text-sm text-gray-500">
+        Loading transactions…
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200">
         <caption className="sr-only">Transaction History</caption>
+
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Name
             </th>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Amount
             </th>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Status
             </th>
-            <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
               Date
             </th>
-            <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Transaction Code
             </th>
-            <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
               Category
             </th>
           </tr>
         </thead>
+
         <tbody className="bg-white divide-y divide-gray-200">
           {transactions.map((transaction) => {
             const isDebit = transaction.type === "debit";
-            const formattedAmount = formatAmount(transaction.amount);
+            const amount = formatAmount(Number(transaction.amount));
 
             return (
               <tr
                 key={transaction.id}
-                className={
-                  isDebit || transaction.amount < 0
-                    ? "bg-red-50"
-                    : "bg-green-50"
-                }
+                className={isDebit ? "bg-red-50" : "bg-green-50"}
               >
                 <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {removeSpecialCharacters(transaction.name)}
                   </div>
                 </td>
+
                 <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                   <span
                     className={`text-sm font-semibold ${
-                      isDebit || transaction.amount < 0
-                        ? "text-red-600"
-                        : "text-green-600"
+                      isDebit ? "text-red-600" : "text-green-600"
                     }`}
                   >
-                    {isDebit ? `-${formattedAmount}` : `+${formattedAmount}`}
+                    {isDebit ? `-${amount}` : `+${amount}`}
                   </span>
                 </td>
+
                 <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                   <CategoryBadge category={transaction.status} />
                 </td>
+
                 <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDateTime(new Date(transaction.date))}
+                  {formatDateTime(new Date(transaction.occurredAt))}
                 </td>
+
                 <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {transaction.transactionCode}
                 </td>
+
                 <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                   <CategoryBadge category={transaction.category} />
                 </td>

@@ -15,6 +15,34 @@
       "when": 1766205761371,
       "tag": "0001_dizzy_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766263450679,
+      "tag": "0002_early_machine_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766264783214,
+      "tag": "0003_amused_rattler",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766274425415,
+      "tag": "0004_chunky_speed",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1766275417652,
+      "tag": "0005_daffy_stephen_strange",
+      "breakpoints": true
     }
   ]
 }

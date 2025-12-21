@@ -4,10 +4,15 @@ import { db } from "@/lib/database/db";
 import { users } from "@/lib/database/schema";
 import { eq } from "drizzle-orm";
 
+type SignUpInput = {
+  email: string;
+  password: string;
+  pin: string;
+};
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { email, password, pin } = body;
+    const { email, password, pin } = (await req.json()) as SignUpInput;
 
     if (!email || !password || !pin) {
       return NextResponse.json(
@@ -18,7 +23,7 @@ export async function POST(req: Request) {
 
     if (pin !== "9095") {
       return NextResponse.json(
-        { message: "Invalid PIN" },
+        { message: "PIN NGORI MZEE" },
         { status: 403 }
       );
     }
@@ -31,7 +36,7 @@ export async function POST(req: Request) {
       .where(eq(users.email, normalizedEmail))
       .limit(1);
 
-    if (existing.length > 0) {
+    if (existing.length) {
       return NextResponse.json(
         { message: "User already exists" },
         { status: 409 }
@@ -51,8 +56,7 @@ export async function POST(req: Request) {
       { message: "Account created successfully" },
       { status: 201 }
     );
-  } catch (error) {
-    console.error("Signup error:", error);
+  } catch {
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
