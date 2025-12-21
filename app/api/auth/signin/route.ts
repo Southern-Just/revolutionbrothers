@@ -1,19 +1,65 @@
 import { NextResponse } from "next/server";
-import { signIn, type SignInInput } from "@/lib/auth";
+import bcrypt from "bcryptjs";
+import { db } from "@/lib/database/db";
+import { users, members } from "@/lib/database/schema";
+import { eq } from "drizzle-orm";
+
+type SignUpInput = {
+  email: string;
+  password: string;
+  pin: string;
+};
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as SignInInput;
-    await signIn(body);
-    return NextResponse.json({ message: "Signed in successfully" });
-  } catch (err) {
-    if (err instanceof Error && err.message === "INVALID_CREDENTIALS") {
+    const { email, password, pin } = (await req.json()) as SignUpInput;
+
+    if (!email || !password || !pin) {
+      return NextResponse.json({ message: "Missing fields" }, { status: 400 });
+    }
+
+    if (pin !== "9095") {
+      return NextResponse.json({ message: "PIN NGORI MZEE" }, { status: 403 });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const existing = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, normalizedEmail))
+      .limit(1);
+
+    if (existing.length) {
       return NextResponse.json(
-        { message: "Invalid email or password" },
-        { status: 401 }
+        { message: "User already exists" },
+        { status: 409 }
       );
     }
 
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: normalizedEmail,
+        passwordHash,
+        pin: "9095",
+        isVerified: true,
+      })
+      .returning({ id: users.id });
+
+    await db.insert(members).values({
+      userId: user.id,
+      role: "member",
+      isActive: true,
+    });
+
+    return NextResponse.json(
+      { message: "Account created successfully" },
+      { status: 201 }
+    );
+  } catch {
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

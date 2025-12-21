@@ -4,9 +4,7 @@ import { users, sessions } from "@/lib/database/schema";
 import { eq, and, gt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
-export type AuthError =
-  | "INVALID_CREDENTIALS"
-  | "UNAUTHORIZED";
+export type AuthError = "INVALID_CREDENTIALS" | "UNAUTHORIZED";
 
 export type SignInInput = {
   email: string;
@@ -27,7 +25,6 @@ export async function signIn(input: SignInInput) {
   }
 
   const user = result[0];
-
   const valid = await bcrypt.compare(password, user.passwordHash);
 
   if (!valid) {

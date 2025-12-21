@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/database/db";
-import { members } from "@/lib/database/schema";
+import { members, userProfiles } from "@/lib/database/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -9,30 +10,18 @@ export async function GET() {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await db.select().from(members);
-  return NextResponse.json(result);
-}
-
-export async function POST(req: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = (await req.json()) as {
-    userId: string;
-    role?: "chairperson" | "secretary" | "treasurer" | "member";
-    isActive?: boolean;
-  };
-
-  const [member] = await db
-    .insert(members)
-    .values({
-      userId: body.userId,
-      role: body.role ?? "member",
-      isActive: body.isActive ?? true,
+  const result = await db
+    .select({
+      id: members.id,
+      userId: members.userId,
+      role: members.role,
+      isActive: members.isActive,
+      name: userProfiles.name,
+      username: userProfiles.username,
+      profileImage: userProfiles.profileImage,
     })
-    .returning();
+    .from(members)
+    .innerJoin(userProfiles, eq(userProfiles.userId, members.userId));
 
-  return NextResponse.json(member, { status: 201 });
+  return NextResponse.json(result);
 }

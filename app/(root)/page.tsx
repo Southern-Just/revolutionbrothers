@@ -4,11 +4,6 @@ import HeroCarousel from "@/components/HeroCarousel";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
-interface AuthResponse {
-  message: string;
-  sessionToken?: string;
-}
-
 export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -18,14 +13,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get auth mode from URL or default to none
   const authMode = searchParams.get("auth");
   const isSignUp = authMode === "signup";
   const showAuth = authMode === "signin" || authMode === "signup";
 
-  // Update URL based on auth state
   useEffect(() => {
-    // Clean up URL on component mount if it's invalid
     if (!showAuth && authMode) {
       router.replace("/", { scroll: false });
     }
@@ -41,13 +33,16 @@ export default function Home() {
         const res = await fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim().toLowerCase(), password, pin }),
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            password,
+            pin,
+          }),
         });
 
-        const data = (await res.json()) as AuthResponse | { message: string };
-        if (!res.ok) throw new Error("message" in data ? data.message : "Signup failed");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Signup failed");
 
-        alert("Account created successfully");
         setEmail("");
         setPassword("");
         setPin("");
@@ -56,20 +51,19 @@ export default function Home() {
         const res = await fetch("/api/auth/signin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            password,
+          }),
         });
 
-        const data = (await res.json()) as AuthResponse;
-        if (!res.ok || !data.sessionToken) {
-          throw new Error(data.message ?? "Signin failed");
-        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Signin failed");
 
-        sessionStorage.setItem("sessionToken", data.sessionToken);
         router.push("/revolution");
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "An error occurred";
-      setError(message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -80,17 +74,8 @@ export default function Home() {
   };
 
   const handleToggleSignUp = () => {
-    const newMode = isSignUp ? "signin" : "signup";
-    router.push(`/?auth=${newMode}`, { scroll: false });
+    router.push(`/?auth=${isSignUp ? "signin" : "signup"}`, { scroll: false });
   };
-
-  // const handleCloseAuth = () => {
-  //   router.replace("/", { scroll: false });
-  //   setEmail("");
-  //   setPassword("");
-  //   setPin("");
-  //   setError(null);
-  // };
 
   return (
     <main className="min-h-screen">
@@ -156,29 +141,22 @@ export default function Home() {
 
                   {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                  <div className="flex justify-between items-center text-sm text-gray-500">
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isSignUp}
-                        onChange={handleToggleSignUp}
-                        className="accent-brand"
-                      />
-                      Sign Up
-                    </label>
-
-                  </div>
+                  <label className="flex items-center gap-1 cursor-pointer text-sm text-gray-500">
+                    <input
+                      type="checkbox"
+                      checked={isSignUp}
+                      onChange={handleToggleSignUp}
+                      className="accent-brand"
+                    />
+                    Sign Up
+                  </label>
 
                   <button
                     type="submit"
                     disabled={loading}
                     className="bg-black text-white font-semibold py-4 rounded-full text-lg"
                   >
-                    {loading
-                      ? "Processing..."
-                      : isSignUp
-                      ? "Join Us"
-                      : "Continue"}
+                    {loading ? "Processing..." : isSignUp ? "Join Us" : "Continue"}
                   </button>
                 </form>
               </div>

@@ -1,19 +1,42 @@
 "use client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { mockData } from "@/lib/mock";
+import { useEffect, useState } from "react";
 
-const officialsOrder = ["Chairman", "Treasurer", "Secretary"];
+const officialsOrder = ["chairperson", "treasurer", "secretary"];
 const ACTIVE_USER_ID = "1";
+
+type Member = {
+  id: string;
+  userId: string;
+  name: string;
+  role: "chairperson" | "secretary" | "treasurer" | "member";
+  isActive: boolean;
+  profileImage?: string | null;
+};
 
 const Members = () => {
   const router = useRouter();
-  const members = mockData.members;
+  const [members, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      const res = await fetch("/api/members");
+      if (!res.ok) {
+        router.replace("/");
+        return;
+      }
+      const data: Member[] = await res.json();
+      setMembers(data);
+    };
+    fetchMembers();
+  }, [router]);
 
   const officials = members
     .filter((m) => officialsOrder.includes(m.role))
     .sort(
-      (a, b) => officialsOrder.indexOf(a.role) - officialsOrder.indexOf(b.role)
+      (a, b) =>
+        officialsOrder.indexOf(a.role) - officialsOrder.indexOf(b.role)
     );
 
   const others = members.filter((m) => !officialsOrder.includes(m.role));
@@ -28,14 +51,13 @@ const Members = () => {
   })();
 
   return (
-    <div className="min-h-screen items-center flex justify-center px-2">
+    <div className="min-h-screen items-start flex justify-center px-2">
       <div className=" flex flex-col items-center space-y-4 py-3">
         <h1 className="text-xl font-bold text-center">
           Revolution Brothers Members :<span className="text-brand"> KIKOSI</span>
         </h1>
         <p className="text-gray-400 text-lg text-center">Officials 2025–2026</p>
 
-        {/* Officials Section */}
         <div className="flex justify-center gap-6 mt-4 flex-wrap">
           {officials.map((member) => (
             <div
@@ -47,12 +69,10 @@ const Members = () => {
                 <p className="text-sm font-semibold">{member.name}</p>
                 <p className="text-xs text-gray-400">{member.role}</p>
               </div>
-
             </div>
           ))}
         </div>
 
-        {/* Other Members Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-6 w-full justify-items-center">
           {sortedOthers.map((member) => {
             const isActive = member.userId === ACTIVE_USER_ID;
@@ -71,7 +91,7 @@ const Members = () => {
                   </div>
                   <div className="w-12 h-12 rounded-full overflow-hidden border border-black/30 p-0.5 flex items-center justify-center bg-gray-200">
                     <Image
-                      src={member.image || "/icons/profiles.svg"}
+                      src={member.profileImage || "/icons/profiles.svg"}
                       alt={member.name}
                       width={40}
                       height={40}
@@ -80,7 +100,7 @@ const Members = () => {
                   </div>
                 </div>
                 <div className="flex justify-between items-end mt-3">
-                  <span className="text-sm text-gray-400">ID: {member.userId}</span>
+                  <span className="text-[10px] text-gray-400">{member.userId}</span>
                   <span className="text-xs italic text-gray-400">Signature</span>
                 </div>
               </div>

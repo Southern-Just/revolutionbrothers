@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   open: boolean;
@@ -7,6 +8,14 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ open, onClose }: SidebarProps) => {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    onClose();
+    router.replace("/");
+  };
+
   return (
     <>
       {open && (
@@ -54,6 +63,13 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
               </Link>
             ))}
           </nav>
+
+          <button
+            onClick={handleLogout}
+            className="text-brand px-4 text-left hover:opacity-70 transition"
+          >
+            Logout
+          </button>
 
           <footer className="absolute bottom-10 w-full px-2 space-y-6">
             <Link href="/account" onClick={onClose}>
