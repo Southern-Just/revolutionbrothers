@@ -1,28 +1,68 @@
 "use client";
 
-import { useState } from "react";
-import { mockData } from "@/lib/mock";
+import { useEffect, useState } from "react";
 import Footer from "./Footer";
 
+type MemberProfile = {
+  id: string;
+  userId: string;
+  role: "chairperson" | "secretary" | "treasurer" | "member";
+  isActive: boolean;
+  name: string;
+  username: string;
+  phone?: string;
+  profileImage?: string | null;
+  nationalId: string;
+  contributions: { amount: string }[];
+};
+
 const Profile = () => {
-  const currentUser = mockData.members.find((m) => m.userId === "1")!;
-
+  const [currentUser, setCurrentUser] = useState<MemberProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-
   const [personal, setPersonal] = useState({
-    name: currentUser.name,
-    email: "patrick@example.com",
-    phone: currentUser.phone ?? "+254712345678",
-    username: "patrick_smith",
-    nationalId: "32847561",
+    name: "",
+    email: "",
+    phone: "",
+    username: "",
+    nationalId: "",
   });
-
-  const totalSavings = currentUser.contributions.reduce(
-    (sum, c) => sum + c.amount,
-    0
-  );
-
   const [creditLimit, setCreditLimit] = useState(100000);
+
+  useEffect(() => {
+    const load = async () => {
+      const membersRes = await fetch("/api/members");
+      if (!membersRes.ok) return;
+
+      const members = await membersRes.json();
+      if (!members.length) return;
+
+      const memberRes = await fetch(`/api/members/${members[0].id}`);
+      if (!memberRes.ok) return;
+
+      const data: MemberProfile = await memberRes.json();
+      setCurrentUser(data);
+
+      setPersonal({
+        name: data.name,
+        email: "",
+        phone: data.phone ?? "",
+        username: data.username,
+        nationalId: data.nationalId,
+      });
+    };
+
+    load();
+  }, []);
+
+  if (!currentUser) {
+    return <p className="text-center mt-4">Loading...</p>;
+  }
+
+  const totalSavings =
+    currentUser.contributions.reduce(
+      (sum, c) => sum + Number(c.amount),
+      0
+    ) ?? 0;
 
   const financials = {
     creditLimit,
@@ -37,38 +77,26 @@ const Profile = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPersonal((prev) => ({ ...prev, [name]: value }));
+    setPersonal((p) => ({ ...p, [name]: value }));
   };
 
   const refreshCreditLimit = () => {
-    const newLimit = Math.floor(Math.random() * 200000) + 50000;
-    setCreditLimit(newLimit);
+    setCreditLimit(Math.floor(Math.random() * 200000) + 50000);
   };
 
-  // Unified button click handler
   const handleAction = () => {
-    if (isEditing) {
-      // Save changes logic here
-      console.log("Saved changes:", personal);
-      setIsEditing(false);
-    } else {
-      setIsEditing(true);
-    }
+    setIsEditing(!isEditing);
   };
 
   return (
-    <div className="mx-auto mt-2 w-[94%] max-w-3xl font-sans page-animate">
-      {/* Header */}
-      <div className="mb-2 flex w-full items-center justify-end p-2 ">
-        <h2 className="text-2xl font-semibold text-brand shadow-lg shadow-brand/40 mr-4">{personal.username}<span className="text-foreground"> Details</span></h2>
+    <div className="mx-auto mt-2 w-[94%] max-w-3xl font-sans">
+      <div className="mb-2 flex w-full items-center justify-end p-2">
+        <h2 className="text-2xl font-semibold mr-4">
+          {personal.username} Details
+        </h2>
       </div>
 
-      {/* Personal Details */}
       <section className="rounded-2xl bg-white px-4 py-2 shadow-sm">
-        <p className="text-[11px] mb-6">
-          At your convenience update or modify your profile information from here
-        </p>
-
         {[
           { label: "Name", key: "name" },
           { label: "Email", key: "email" },
@@ -83,77 +111,53 @@ const Profile = () => {
                 name={key}
                 value={personal[key as keyof typeof personal]}
                 onChange={handleChange}
-                className="w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-48 rounded-lg border px-3 py-2 text-sm"
               />
             ) : (
-              <p className="text-sm font-medium text-gray-800">
+              <p className="text-sm font-medium">
                 {personal[key as keyof typeof personal]}
               </p>
             )}
           </div>
         ))}
 
-        {/* Unified Action Button */}
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleAction}
-            className="rounded-xl bg-brand px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand/70"
+            className="rounded-xl bg-brand px-6 py-2 text-sm font-semibold text-white"
           >
             {isEditing ? "Save Changes" : "Edit"}
           </button>
-          {isEditing && (
-            <button
-              onClick={() => setIsEditing(false)}
-              className="ml-2 rounded-xl border border-gray-300 px-6 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
-            >
-              Cancel
-            </button>
-          )}
         </div>
       </section>
 
-      {/* Financial Details */}
       <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-semibold text-gray-800">Financial Details</h3>
-
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm text-gray-500">Credit Limit</span>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={refreshCreditLimit}
-              className="rounded bg-gray-200 px-2 py-0.5 text-xs hover:bg-gray-300"
-            >
-              ⟳
-            </button>
-            <p className="text-sm font-medium text-gray-800">
-              ksh {financials.creditLimit.toLocaleString()}
-            </p>
+        <div className="mb-3 flex justify-between">
+          <span>Credit Limit</span>
+          <div className="flex gap-4 items-center">
+            <button onClick={refreshCreditLimit}>⟳</button>
+            <p>ksh {financials.creditLimit.toLocaleString()}</p>
           </div>
         </div>
 
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm text-gray-500">Loan Balance</span>
-          <p className="text-sm font-medium text-gray-800">
-            ksh {financials.loanBalance.toLocaleString()}
-          </p>
+        <div className="mb-3 flex justify-between">
+          <span>Loan Balance</span>
+          <p>ksh {financials.loanBalance.toLocaleString()}</p>
         </div>
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm text-gray-500">Total Savings</span>
-          <p className="text-sm font-medium text-gray-800">
-            ksh {financials.savings.toLocaleString()}
-          </p>
+
+        <div className="mb-3 flex justify-between">
+          <span>Total Savings</span>
+          <p>ksh {financials.savings.toLocaleString()}</p>
         </div>
 
         <div className="mt-6">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-gray-500">Financial Health</span>
-            <span className="text-xs font-medium text-gray-600">
-              {financialHealth}%
-            </span>
+          <div className="mb-2 flex justify-between">
+            <span>Financial Health</span>
+            <span>{financialHealth}%</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div className="h-2 w-full rounded-full bg-gray-200">
             <div
-              className="h-full rounded-full bg-linear-to-r from-green-400 to-green-600 transition-all"
+              className="h-full rounded-full bg-green-500"
               style={{ width: `${financialHealth}%` }}
             />
           </div>

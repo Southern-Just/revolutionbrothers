@@ -1,12 +1,21 @@
 import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/database/db";
-import { members, userProfiles } from "@/lib/database/schema";
+import {
+  members,
+  userProfiles,
+  contributions,
+} from "@/lib/database/schema";
 import { eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const { id } = await context.params;
 
@@ -28,17 +37,33 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     .where(eq(members.id, id))
     .limit(1);
 
-  if (!result.length) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  return NextResponse.json(result[0]);
+  if (!result.length) {
+    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
+
+  const memberContributions = await db
+    .select({ amount: contributions.amount })
+    .from(contributions)
+    .where(eq(contributions.userId, result[0].userId));
+
+  return NextResponse.json({
+    ...result[0],
+    contributions: memberContributions,
+  });
 }
 
-export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const { id } = await context.params;
 
-  const body = await req.json() as {
+  const body = (await req.json()) as {
     role?: "chairperson" | "secretary" | "treasurer" | "member";
     isActive?: boolean;
     name?: string;
@@ -53,7 +78,9 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     .where(eq(members.id, id))
     .limit(1);
 
-  if (!member) return NextResponse.json({ message: "Not found" }, { status: 404 });
+  if (!member) {
+    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
 
   if (body.role || body.isActive !== undefined) {
     await db
@@ -96,9 +123,14 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   return NextResponse.json(updated);
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const { id } = await context.params;
 
@@ -107,6 +139,9 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     .where(eq(members.id, id))
     .returning();
 
-  if (!deleted) return NextResponse.json({ message: "Not found" }, { status: 404 });
+  if (!deleted) {
+    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
+
   return NextResponse.json({ message: "Deleted" });
 }

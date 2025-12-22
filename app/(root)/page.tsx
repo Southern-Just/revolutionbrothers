@@ -156,7 +156,7 @@ export default function Home() {
                     disabled={loading}
                     className="bg-black text-white font-semibold py-4 rounded-full text-lg"
                   >
-                    {loading ? "Processing..." : isSignUp ? "Join Us" : "Continue"}
+                    {loading ? "In a Sec. ..." : isSignUp ? "Join Us" : "Continue"}
                   </button>
                 </form>
               </div>

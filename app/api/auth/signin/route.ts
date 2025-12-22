@@ -1,65 +1,40 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { db } from "@/lib/database/db";
-import { users, members } from "@/lib/database/schema";
-import { eq } from "drizzle-orm";
-
-type SignUpInput = {
-  email: string;
-  password: string;
-  pin: string;
-};
+import { signIn } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, pin } = (await req.json()) as SignUpInput;
+    const { email, password } = await req.json();
 
-    if (!email || !password || !pin) {
-      return NextResponse.json({ message: "Missing fields" }, { status: 400 });
-    }
-
-    if (pin !== "9095") {
-      return NextResponse.json({ message: "PIN NGORI MZEE" }, { status: 403 });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-
-    const existing = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, normalizedEmail))
-      .limit(1);
-
-    if (existing.length) {
+    if (!email || !password) {
       return NextResponse.json(
-        { message: "User already exists" },
-        { status: 409 }
+        { message: "Missing credentials" },
+        { status: 400 }
       );
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const [user] = await db
-      .insert(users)
-      .values({
-        email: normalizedEmail,
-        passwordHash,
-        pin: "9095",
-        isVerified: true,
-      })
-      .returning({ id: users.id });
-
-    await db.insert(members).values({
-      userId: user.id,
-      role: "member",
-      isActive: true,
-    });
+    await signIn({ email, password });
 
     return NextResponse.json(
-      { message: "Account created successfully" },
-      { status: 201 }
+      { message: "Signin successful" },
+      { status: 200 }
     );
-  } catch {
+  } catch (err) {
+    if (err instanceof Error) {
+      switch (err.message) {
+        case "INVALID_CREDENTIALS":
+          return NextResponse.json(
+            { message: "Invalid email or password" },
+            { status: 401 }
+          );
+
+        case "UNAUTHORIZED":
+          return NextResponse.json(
+            { message: "Unauthorized" },
+            { status: 403 }
+          );
+      }
+    }
+
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
