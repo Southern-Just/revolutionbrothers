@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
@@ -8,19 +8,23 @@ import RecentTransactions from "@/components/RecentTransactions";
 import DepositWithdraw from "@/components/DepositWithdraw";
 import Transactions from "@/components/Transactions";
 import Footer from "@/components/Footer";
+import {
+  getTransactions,
+} from "@/lib/users.systeme";
 import { getCurrentUser } from "@/lib/user.actions";
-import { getTransactions } from "@/lib/users.transactions";
 
 type Tab = "transactions" | "deposit";
 
+type Role = "chairperson" | "secretary" | "treasurer" | "member";
+
 interface Member {
   id: string;
-  name: string;
   email: string;
-  role?: string;
+  role: Role;
+  name: string;
 }
 
-export interface Transaction {
+interface Transaction {
   id: string;
   userId: string;
   name: string;
@@ -34,98 +38,92 @@ export interface Transaction {
   createdAt?: string;
 }
 
-interface RawTransaction {
-  id: string;
-  userId: string;
-  name: string;
-  month?: string;
-  amount: string;
-  type: "credit" | "debit";
-  status: string;
-  category: string;
-  transactionCode: string;
-  occurredAt: string;
-  createdAt?: string;
-}
-
 export default function Revolution() {
   const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+
   const [member, setMember] = useState<Member | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
 
   useEffect(() => {
-    const init = async () => {
+    const bootstrap = async () => {
       try {
-        const user: Member | null = await getCurrentUser();
+        const user = await getCurrentUser();
         if (!user) {
           router.replace("/");
           return;
         }
-        setMember(user);
 
-        const rawTxs: RawTransaction[] = await getTransactions(user.id);
-
-        const normalizedTxs: Transaction[] = rawTxs.map((t) => {
-          const amount = Number(t.amount);
-          const occurredDate = new Date(t.occurredAt);
-          return {
-            ...t,
-            amount: isNaN(amount) ? 0 : amount,
-            occurredAt: isNaN(occurredDate.getTime())
-              ? new Date().toISOString()
-              : occurredDate.toISOString(),
-          };
+        setMember({
+          id: user.id,
+          email: user.email,
+          role: user.role as Role,
+          name: user.email.split("@")[0],
         });
 
-        setTransactions(normalizedTxs);
+        const raw = await getTransactions(user.id);
 
-        const balance = normalizedTxs.reduce((sum, t) => sum + t.amount, 0);
-        setTotalBalance(balance);
+        const normalized: Transaction[] = raw.map((t) => ({
+          id: t.id,
+          userId: t.userId,
+          name: t.name,
+          month: t.month ?? undefined,
+          amount: Number(t.amount),
+          type: t.type as "credit" | "debit",
+          status: t.status,
+          category: t.category,
+          transactionCode: t.transactionCode,
+          occurredAt: new Date(t.occurredAt).toISOString(),
+          createdAt: t.createdAt
+            ? new Date(t.createdAt).toISOString()
+            : undefined,
+        }));
 
-        setAuthChecked(true);
+        setTransactions(normalized);
+        setTotalBalance(
+          normalized.reduce((sum, t) => sum + t.amount, 0)
+        );
       } catch {
         router.replace("/");
       }
     };
 
-    init();
+    bootstrap();
   }, [router]);
 
   useEffect(() => {
     if (!loading) return;
 
     const duration = 3000;
-    const intervalTime = 30;
-    const increments = (intervalTime / duration) * 100;
+    const intervalMs = 30;
+    const step = (intervalMs / duration) * 100;
 
     const interval = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + increments;
+      setProgress((p) => {
+        const next = p + step;
         if (next >= 100) {
           clearInterval(interval);
           setLoading(false);
-          localStorage.setItem("firstVisit", "false");
           return 100;
         }
         return next;
       });
-    }, intervalTime);
+    }, intervalMs);
 
     return () => clearInterval(interval);
   }, [loading]);
 
-  if (!authChecked || loading) {
+  if (loading || !member) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4 bg-gray-50">
         <Image
           src="/icons/loader1.svg"
-          alt="Loading..."
+          alt="Loading"
           width={220}
           height={220}
           className="animate-spin"
@@ -196,10 +194,14 @@ export default function Revolution() {
                   All
                 </span>
               </h1>
+
               {showAllTransactions && (
                 <Transactions onClose={() => setShowAllTransactions(false)} />
               )}
-              <RecentTransactions transactions={transactions.slice(0, 5)} />
+
+              <RecentTransactions
+                transactions={transactions.slice(0, 5)}
+              />
             </>
           )}
 
@@ -213,11 +215,9 @@ export default function Revolution() {
           )}
         </div>
 
-        {member && (
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Welcome {member.name}
-          </p>
-        )}
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Welcome {member.name}
+        </p>
       </section>
 
       <Footer />

@@ -1,9 +1,9 @@
 "use client";
 
 import HeroCarousel from "@/components/HeroCarousel";
+import { signIn, signUp } from "@/lib/user.actions";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { signInAction, signUpAction } from "@/lib/user.actions";
 
 export default function Home() {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function Home() {
 
     try {
       if (isSignUp) {
-        await signUpAction({
+        await signUp({
           email: email.trim().toLowerCase(),
           password,
           pin,
@@ -43,7 +43,7 @@ export default function Home() {
         setPin("");
         router.replace("/", { scroll: false });
       } else {
-        await signInAction({
+        await signIn({
           email: email.trim().toLowerCase(),
           password,
         });

@@ -1,7 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getTransactions } from "@/lib/users.transactions";
+import Image from "next/image";
+
+export interface Transaction {
+  id: string;
+  name: string;
+  amount: number;
+  type: "credit" | "debit";
+  status: string;
+  category: string;
+  transactionCode: string;
+  occurredAt: string;
+}
+
+interface RecentTransactionsProps {
+  transactions: Transaction[];
+}
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -23,17 +37,6 @@ const formatDateTime = (date: Date) =>
 const removeSpecialCharacters = (text: string) =>
   text.replace(/[^\w\s]/gi, "");
 
-interface Transaction {
-  id: string;
-  name: string;
-  amount: number;
-  type: "credit" | "debit";
-  status: string;
-  category: string;
-  transactionCode: string;
-  occurredAt: string;
-}
-
 interface CategoryBadgeProps {
   category: string;
 }
@@ -47,44 +50,13 @@ const CategoryBadge = ({ category }: CategoryBadgeProps) => (
   </div>
 );
 
-export default function RecentTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await getTransactions();
-
-        const recent = data
-          .map((t) => ({
-            ...t,
-            amount: Number(t.amount),
-            occurredAt: new Date(t.occurredAt).toISOString(),
-            type: t.type as "credit" | "debit",
-          }))
-          .sort(
-            (a, b) =>
-              new Date(b.occurredAt).getTime() -
-              new Date(a.occurredAt).getTime()
-          )
-          .slice(0, 6);
-
-        setTransactions(recent);
-      } catch {
-        setTransactions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, []);
-
-  if (loading) {
+export default function RecentTransactions({
+  transactions,
+}: RecentTransactionsProps) {
+  if (!transactions.length) {
     return (
-      <div className="rounded-lg border border-gray-200 p-4 text-sm text-gray-500">
-        Loading transactions…
+      <div className="rounded-lg border border-gray-200 p-4 text-sm text-gray-500 text-center">
+        No recent transactions
       </div>
     );
   }

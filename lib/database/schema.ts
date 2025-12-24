@@ -36,23 +36,11 @@ export const userProfiles = pgTable("user_profiles", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),  
   username: varchar("username", { length: 50 }).notNull().unique(),
   nationalId: varchar("national_id", { length: 20 }).notNull(),
   phone: varchar("phone", { length: 20 }),
   profileImage: varchar("profile_image", { length: 255 }),
-});
-
-/* ---------------- MEMBERS ---------------- */
-
-export const members = pgTable("members", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  role: memberRoleEnum("role").notNull().default("member"),
-  isActive: boolean("is_active").default(true).notNull(),
-  joinedAt: timestamp("joined_at").defaultNow().notNull(),
 });
 
 /* ---------------- SESSIONS ---------------- */

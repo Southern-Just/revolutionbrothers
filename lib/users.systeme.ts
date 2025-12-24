@@ -1,53 +1,89 @@
+// users.systeme.ts
 "use server";
 
 import { db } from "@/lib/database/db";
-import { members, userProfiles, transactions } from "@/lib/database/schema";
-import { eq, asc } from "drizzle-orm";
+import {
+  users,
+  userProfiles,
+  transactions,
+} from "@/lib/database/schema";
+import { eq, asc, desc } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/user.actions";
 
-type MemberRole = "chairperson" | "secretary" | "treasurer" | "member";
+export type MemberRole =
+  | "chairperson"
+  | "secretary"
+  | "treasurer"
+  | "member";
 
 export async function getMembers() {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("UNAUTHORIZED");
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
 
   return db
     .select({
-      id: members.id,
-      userId: members.userId,
-      role: members.role,
-      isActive: members.isActive,
+      id: users.id,
+      email: users.email,
+      role: users.role,
       name: userProfiles.name,
       username: userProfiles.username,
+      phone: userProfiles.phone,
       profileImage: userProfiles.profileImage,
+      createdAt: users.createdAt,
     })
-    .from(members)
-    .innerJoin(userProfiles, eq(userProfiles.userId, members.userId));
+    .from(users)
+    .innerJoin(userProfiles, eq(userProfiles.userId, users.id));
 }
 
-export async function getMemberById(id: string) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("UNAUTHORIZED");
+export async function getMemberById(userId: string) {
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
 
   const [member] = await db
     .select({
-      id: members.id,
-      userId: members.userId,
-      role: members.role,
-      isActive: members.isActive,
-      joinedAt: members.joinedAt,
+      id: users.id,
+      email: users.email,
+      role: users.role,
       name: userProfiles.name,
       username: userProfiles.username,
       nationalId: userProfiles.nationalId,
       phone: userProfiles.phone,
       profileImage: userProfiles.profileImage,
+      createdAt: users.createdAt,
     })
-    .from(members)
-    .innerJoin(userProfiles, eq(userProfiles.userId, members.userId))
-    .where(eq(members.id, id))
+    .from(users)
+    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
+    .where(eq(users.id, userId))
     .limit(1);
 
   if (!member) throw new Error("NOT_FOUND");
+
+  if (!member.name) {
+    await db.insert(userProfiles).values({
+      userId,
+      name: "",
+      username: member.email.split("@")[0],
+      nationalId: "",
+    });
+    const [updated] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+        name: userProfiles.name,
+        username: userProfiles.username,
+        nationalId: userProfiles.nationalId,
+        phone: userProfiles.phone,
+        profileImage: userProfiles.profileImage,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!updated) throw new Error("NOT_FOUND");
+    Object.assign(member, updated);
+  }
 
   const contributions = await db
     .select({
@@ -59,44 +95,33 @@ export async function getMemberById(id: string) {
       category: transactions.category,
       transactionCode: transactions.transactionCode,
       occurredAt: transactions.occurredAt,
+      createdAt: transactions.createdAt,
     })
     .from(transactions)
-    .where(eq(transactions.userId, member.userId))
+    .where(eq(transactions.userId, userId))
     .orderBy(asc(transactions.month));
 
   return { ...member, contributions };
 }
 
 export async function updateMember(
-  id: string,
+  userId: string,
   data: {
     role?: MemberRole;
-    isActive?: boolean;
     name?: string;
     username?: string;
     phone?: string;
     profileImage?: string;
   }
 ) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("UNAUTHORIZED");
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
 
-  const [member] = await db
-    .select()
-    .from(members)
-    .where(eq(members.id, id))
-    .limit(1);
-
-  if (!member) throw new Error("NOT_FOUND");
-
-  if (data.role !== undefined || data.isActive !== undefined) {
+  if (data.role !== undefined) {
     await db
-      .update(members)
-      .set({
-        ...(data.role !== undefined && { role: data.role }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-      })
-      .where(eq(members.id, id));
+      .update(users)
+      .set({ role: data.role })
+      .where(eq(users.id, userId));
   }
 
   if (
@@ -115,38 +140,92 @@ export async function updateMember(
           profileImage: data.profileImage,
         }),
       })
-      .where(eq(userProfiles.userId, member.userId));
+      .where(eq(userProfiles.userId, userId));
   }
 
   const [updated] = await db
     .select({
-      id: members.id,
-      userId: members.userId,
-      role: members.role,
-      isActive: members.isActive,
-      joinedAt: members.joinedAt,
+      id: users.id,
+      email: users.email,
+      role: users.role,
       name: userProfiles.name,
       username: userProfiles.username,
       phone: userProfiles.phone,
       profileImage: userProfiles.profileImage,
     })
-    .from(members)
-    .innerJoin(userProfiles, eq(userProfiles.userId, members.userId))
-    .where(eq(members.id, id));
+    .from(users)
+    .innerJoin(userProfiles, eq(userProfiles.userId, users.id))
+    .where(eq(users.id, userId))
+    .limit(1);
 
   return updated;
 }
 
-export async function deleteMember(id: string) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("UNAUTHORIZED");
+export async function deleteMember(userId: string) {
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
 
-  const [deleted] = await db
-    .delete(members)
-    .where(eq(members.id, id))
+  await db.delete(users).where(eq(users.id, userId));
+
+  return { success: true };
+}
+
+export async function getTransactions(userId?: string) {
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
+
+  if (userId) {
+    return db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.occurredAt));
+  }
+
+  return db
+    .select()
+    .from(transactions)
+    .orderBy(desc(transactions.occurredAt));
+}
+
+export async function getTransactionById(id: string) {
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
+
+  const [transaction] = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.id, id))
+    .limit(1);
+
+  if (!transaction) throw new Error("NOT_FOUND");
+
+  return transaction;
+}
+
+export async function updateTransaction(
+  id: string,
+  data: Partial<typeof transactions.$inferInsert>
+) {
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
+
+  const [updated] = await db
+    .update(transactions)
+    .set(data)
+    .where(eq(transactions.id, id))
     .returning();
 
-  if (!deleted) throw new Error("NOT_FOUND");
+  if (!updated) throw new Error("NOT_FOUND");
+
+  return updated;
+}
+
+export async function deleteTransaction(id: string) {
+  const auth = await getCurrentUser();
+  if (!auth) throw new Error("UNAUTHORIZED");
+
+  await db.delete(transactions).where(eq(transactions.id, id));
 
   return { success: true };
 }
