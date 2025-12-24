@@ -3,10 +3,12 @@
 import HeroCarousel from "@/components/HeroCarousel";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { signInAction, signUpAction } from "@/lib/user.actions";
 
 export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
@@ -30,40 +32,45 @@ export default function Home() {
 
     try {
       if (isSignUp) {
-        const res = await fetch("/api/auth/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            password,
-            pin,
-          }),
+        await signUpAction({
+          email: email.trim().toLowerCase(),
+          password,
+          pin,
         });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Signup failed");
 
         setEmail("");
         setPassword("");
         setPin("");
         router.replace("/", { scroll: false });
       } else {
-        const res = await fetch("/api/auth/signin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            password,
-          }),
+        await signInAction({
+          email: email.trim().toLowerCase(),
+          password,
         });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Signin failed");
 
         router.push("/revolution");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      if (err instanceof Error) {
+        switch (err.message) {
+          case "INVALID_CREDENTIALS":
+            setError("Invalid email or password");
+            break;
+          case "USER_EXISTS":
+            setError("User already exists");
+            break;
+          case "INVALID_PIN":
+            setError("PIN NGORI MZEE");
+            break;
+          case "MISSING_FIELDS":
+            setError("Please fill in all fields");
+            break;
+          default:
+            setError("Something went wrong");
+        }
+      } else {
+        setError("An error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -74,7 +81,9 @@ export default function Home() {
   };
 
   const handleToggleSignUp = () => {
-    router.push(`/?auth=${isSignUp ? "signin" : "signup"}`, { scroll: false });
+    router.push(`/?auth=${isSignUp ? "signin" : "signup"}`, {
+      scroll: false,
+    });
   };
 
   return (
@@ -132,14 +141,18 @@ export default function Home() {
                         placeholder="PIN"
                         value={pin}
                         onChange={(e) =>
-                          setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                          setPin(
+                            e.target.value.replace(/\D/g, "").slice(0, 4)
+                          )
                         }
                         className="w-20 rounded-xl border px-2 py-3 text-sm text-center"
                       />
                     )}
                   </div>
 
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
+                  {error && (
+                    <p className="text-red-500 text-sm">{error}</p>
+                  )}
 
                   <label className="flex items-center gap-1 cursor-pointer text-sm text-gray-500">
                     <input
@@ -156,7 +169,11 @@ export default function Home() {
                     disabled={loading}
                     className="bg-black text-white font-semibold py-4 rounded-full text-lg"
                   >
-                    {loading ? "In a Sec. ..." : isSignUp ? "Join Us" : "Continue"}
+                    {loading
+                      ? "In a Sec. ..."
+                      : isSignUp
+                      ? "Join Us"
+                      : "Continue"}
                   </button>
                 </form>
               </div>

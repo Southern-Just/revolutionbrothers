@@ -67,18 +67,6 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-/* ---------------- CONTRIBUTIONS ---------------- */
-
-export const contributions = pgTable("contributions", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  month: varchar("month", { length: 7 }).notNull(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 /* ---------------- TRANSACTIONS ---------------- */
 
 export const transactions = pgTable("transactions", {
@@ -87,6 +75,7 @@ export const transactions = pgTable("transactions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
+  month: varchar("month", { length: 7 }).notNull(),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   type: varchar("type", { length: 10 }).notNull(),
   status: varchar("status", { length: 20 }).notNull(),

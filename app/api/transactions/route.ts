@@ -1,49 +1,30 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/database/db";
 import { transactions } from "@/lib/database/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";  // Add desc import here
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
 
   try {
+    let data;
     if (userId) {
-      const data = await db
+      data = await db
         .select()
         .from(transactions)
-        .where(eq(transactions.userId, userId));
-
-      return NextResponse.json(data);
+        .where(eq(transactions.userId, userId))
+        .orderBy(desc(transactions.occurredAt));  // Use desc() wrapper
+    } else {
+      data = await db
+        .select()
+        .from(transactions)
+        .orderBy(desc(transactions.occurredAt));  // Use desc() wrapper
     }
 
-    const data = await db.select().from(transactions);
     return NextResponse.json(data);
-  } catch {
+  } catch (err) {
+    console.error("Error fetching transactions for userId=", userId, err);
     return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-
-    const [created] = await db
-      .insert(transactions)
-      .values({
-        userId: body.userId,
-        name: body.name,
-        amount: body.amount,
-        type: body.type,
-        status: body.status,
-        category: body.category,
-        transactionCode: body.transactionCode,
-        occurredAt: new Date(body.occurredAt),
-      })
-      .returning();
-
-    return NextResponse.json(created, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Failed to create transaction" }, { status: 500 });
   }
 }
