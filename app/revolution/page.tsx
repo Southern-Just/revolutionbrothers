@@ -34,6 +34,20 @@ export interface Transaction {
   createdAt?: string;
 }
 
+interface RawTransaction {
+  id: string;
+  userId: string;
+  name: string;
+  month?: string;
+  amount: string;
+  type: "credit" | "debit";
+  status: string;
+  category: string;
+  transactionCode: string;
+  occurredAt: string;
+  createdAt?: string;
+}
+
 export default function Revolution() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
@@ -48,21 +62,26 @@ export default function Revolution() {
   useEffect(() => {
     const init = async () => {
       try {
-        const user = await getCurrentUser();
+        const user: Member | null = await getCurrentUser();
         if (!user) {
           router.replace("/");
           return;
         }
         setMember(user);
 
-        const txs = await getTransactions(user.id);
+        const rawTxs: RawTransaction[] = await getTransactions(user.id);
 
-        // Ensure amount is a number
-        const normalizedTxs: Transaction[] = txs.map((t) => ({
-          ...t,
-          amount: Number(t.amount),
-          occurredAt: new Date(t.occurredAt).toISOString(),
-        }));
+        const normalizedTxs: Transaction[] = rawTxs.map((t) => {
+          const amount = Number(t.amount);
+          const occurredDate = new Date(t.occurredAt);
+          return {
+            ...t,
+            amount: isNaN(amount) ? 0 : amount,
+            occurredAt: isNaN(occurredDate.getTime())
+              ? new Date().toISOString()
+              : occurredDate.toISOString(),
+          };
+        });
 
         setTransactions(normalizedTxs);
 
@@ -176,10 +195,10 @@ export default function Revolution() {
                 >
                   All
                 </span>
-                {showAllTransactions && (
-                  <Transactions onClose={() => setShowAllTransactions(false)} />
-                )}
               </h1>
+              {showAllTransactions && (
+                <Transactions onClose={() => setShowAllTransactions(false)} />
+              )}
               <RecentTransactions transactions={transactions.slice(0, 5)} />
             </>
           )}

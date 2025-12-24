@@ -23,12 +23,13 @@ interface Transaction {
   id: string;
   userId: string;
   name: string;
-  amount: string;
+  amount: number;
   type: "credit" | "debit";
   status: string;
   category: string;
   transactionCode: string;
   occurredAt: string;
+  month?: string;
 }
 
 interface CategoryBadgeProps {
@@ -61,7 +62,13 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
         if (!res.ok) throw new Error();
 
         const data = (await res.json()) as Transaction[];
-        setTransactions(data);
+        const normalized = data.map((t) => ({
+          ...t,
+          amount: Number(t.amount),
+          occurredAt: new Date(t.occurredAt).toISOString(),
+        }));
+
+        setTransactions(normalized);
       } finally {
         setLoading(false);
       }
@@ -70,18 +77,15 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
     load();
   }, []);
 
-  const filtered = useMemo(() => {
-    return userId
-      ? transactions.filter((t) => t.userId === userId)
-      : transactions;
-  }, [transactions, userId]);
+  const filtered = useMemo(
+    () => (userId ? transactions.filter((t) => t.userId === userId) : transactions),
+    [transactions, userId]
+  );
 
   const sorted = useMemo(
     () =>
       [...filtered].sort(
-        (a, b) =>
-          new Date(a.occurredAt).getTime() -
-          new Date(b.occurredAt).getTime()
+        (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime()
       ),
     [filtered]
   );
@@ -150,7 +154,7 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
           <tbody className="bg-white divide-y divide-gray-200">
             {sorted.map((t, index) => {
               const isDebit = t.type === "debit";
-              const amount = formatAmount(Number(t.amount));
+              const amount = formatAmount(t.amount);
               const date = new Date(t.occurredAt);
               const currentMonth = date.toLocaleString("en-US", {
                 month: "long",
@@ -160,18 +164,16 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
               const showMonth =
                 index === 0 ||
                 currentMonth !==
-                  new Date(sorted[index - 1].occurredAt).toLocaleString(
-                    "en-US",
-                    { month: "long", year: "numeric" }
-                  );
+                  new Date(sorted[index - 1].occurredAt).toLocaleString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  });
 
               return (
                 <tr key={t.id} className={isDebit ? "bg-red-50" : "bg-green-50"}>
                   {!userId && (
                     <td className="px-3 sm:px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {t.name}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{t.name}</div>
                     </td>
                   )}
                   <td className="px-3 sm:px-6 py-4">
