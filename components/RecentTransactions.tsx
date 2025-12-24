@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getTransactions } from "@/lib/users.transactions";
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -25,7 +26,7 @@ const removeSpecialCharacters = (text: string) =>
 interface Transaction {
   id: string;
   name: string;
-  amount: string;
+  amount: number;
   type: "credit" | "debit";
   status: string;
   category: string;
@@ -53,12 +54,15 @@ export default function RecentTransactions() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/transactions");
-        if (!res.ok) throw new Error();
-
-        const data = (await res.json()) as Transaction[];
+        const data = await getTransactions();
 
         const recent = data
+          .map((t) => ({
+            ...t,
+            amount: Number(t.amount),
+            occurredAt: new Date(t.occurredAt).toISOString(),
+            type: t.type as "credit" | "debit",
+          }))
           .sort(
             (a, b) =>
               new Date(b.occurredAt).getTime() -
@@ -67,6 +71,8 @@ export default function RecentTransactions() {
           .slice(0, 6);
 
         setTransactions(recent);
+      } catch {
+        setTransactions([]);
       } finally {
         setLoading(false);
       }
@@ -114,7 +120,7 @@ export default function RecentTransactions() {
         <tbody className="bg-white divide-y divide-gray-200">
           {transactions.map((transaction) => {
             const isDebit = transaction.type === "debit";
-            const amount = formatAmount(Number(transaction.amount));
+            const amount = formatAmount(transaction.amount);
 
             return (
               <tr

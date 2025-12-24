@@ -6,53 +6,76 @@ import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
 import RecentTransactions from "@/components/RecentTransactions";
 import DepositWithdraw from "@/components/DepositWithdraw";
-import { mockData } from "@/lib/mock";
-import Footer from "@/components/Footer";
 import Transactions from "@/components/Transactions";
+import Footer from "@/components/Footer";
+import { getCurrentUser } from "@/lib/user.actions";
+import { getTransactions } from "@/lib/users.transactions";
 
 type Tab = "transactions" | "deposit";
 
-type Member = {
+interface Member {
+  id: string;
+  name: string;
+  email: string;
+  role?: string;
+}
+
+export interface Transaction {
   id: string;
   userId: string;
-  role: string;
-  isActive: boolean;
-};
-
-const totalGroupBalance = mockData.members
-  .flatMap((member) => member.contributions)
-  .reduce((sum, contrib) => sum + contrib.amount, 0);
+  name: string;
+  month?: string;
+  amount: number;
+  type: "credit" | "debit";
+  status: string;
+  category: string;
+  transactionCode: string;
+  occurredAt: string;
+  createdAt?: string;
+}
 
 export default function Revolution() {
   const router = useRouter();
-
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
-  const [member, setMember] = useState<Member | null>(null);
-
-  const firstVisit =
-    typeof window !== "undefined" &&
-    localStorage.getItem("firstVisit") === null;
-
-  const [loading, setLoading] = useState(firstVisit);
+  const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [member, setMember] = useState<Member | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totalBalance, setTotalBalance] = useState(0);
 
   useEffect(() => {
-    fetch("/api/members")
-      .then(async (res) => {
-        if (res.status === 401) {
+    const init = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
           router.replace("/");
           return;
         }
+        setMember(user);
 
-        const data = (await res.json()) as Member[];
-        setMember(data[0] ?? null);
+        const txs = await getTransactions(user.id);
+
+        // Ensure amount is a number
+        const normalizedTxs: Transaction[] = txs.map((t) => ({
+          ...t,
+          amount: Number(t.amount),
+          occurredAt: new Date(t.occurredAt).toISOString(),
+        }));
+
+        setTransactions(normalizedTxs);
+
+        const balance = normalizedTxs.reduce((sum, t) => sum + t.amount, 0);
+        setTotalBalance(balance);
+
         setAuthChecked(true);
-      })
-      .catch(() => {
-        router.replace("/signin");
-      });
+      } catch {
+        router.replace("/");
+      }
+    };
+
+    init();
   }, [router]);
 
   useEffect(() => {
@@ -115,7 +138,7 @@ export default function Revolution() {
           <AccountCard
             fullName="Revolution Brothers"
             username="Revolution"
-            balance={totalGroupBalance}
+            balance={totalBalance}
           />
         </div>
 
@@ -157,7 +180,7 @@ export default function Revolution() {
                   <Transactions onClose={() => setShowAllTransactions(false)} />
                 )}
               </h1>
-              <RecentTransactions />
+              <RecentTransactions transactions={transactions.slice(0, 5)} />
             </>
           )}
 
@@ -173,7 +196,7 @@ export default function Revolution() {
 
         {member && (
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Welcome member
+            Welcome {member.name}
           </p>
         )}
       </section>
