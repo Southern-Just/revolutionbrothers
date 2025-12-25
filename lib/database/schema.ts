@@ -9,11 +9,17 @@ import {
   pgEnum,
 } from "drizzle-orm/pg-core";
 
-export const memberRoleEnum = pgEnum("member_role", [
+export const userRole = pgEnum("user_role", [
   "chairperson",
   "secretary",
   "treasurer",
   "member",
+]);
+
+export const transactionStatus = pgEnum("transaction_status", [
+  "verified",
+  "pending",
+  "declined",
 ]);
 
 /* ---------------- USERS ---------------- */
@@ -23,7 +29,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   pin: varchar("pin", { length: 4 }).notNull(),
-  role: memberRoleEnum("role").notNull().default("member"),
+  role: userRole("user_role").notNull().default("member"),
   isVerified: boolean("is_verified").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -66,7 +72,7 @@ export const transactions = pgTable("transactions", {
   month: varchar("month", { length: 7 }).notNull(),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   type: varchar("type", { length: 10 }).notNull(),
-  status: varchar("status", { length: 20 }).notNull(),
+  status: transactionStatus("transaction_status").notNull().default("pending"),
   category: varchar("category", { length: 50 }).notNull(),
   transactionCode: varchar("transaction_code", { length: 100 }).notNull(),
   occurredAt: timestamp("occurred_at").notNull(),

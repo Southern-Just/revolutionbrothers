@@ -17,8 +17,12 @@ export type SignUpInput = {
   pin: string;
 };
 
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
+
+/* ---------------- SIGN IN ---------------- */
+
 export async function signIn({ email, password }: SignInInput) {
-  const normalizedEmail = email.toLowerCase();
+  const normalizedEmail = email.toLowerCase().trim();
 
   const [user] = await db
     .select()
@@ -28,14 +32,17 @@ export async function signIn({ email, password }: SignInInput) {
 
   if (!user) throw new Error("INVALID_CREDENTIALS");
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) throw new Error("INVALID_CREDENTIALS");
+  const isValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isValid) throw new Error("INVALID_CREDENTIALS");
 
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + SESSION_DURATION);
 
   const [session] = await db
     .insert(sessions)
-    .values({ userId: user.id, expiresAt })
+    .values({
+      userId: user.id,
+      expiresAt,
+    })
     .returning({ token: sessions.sessionToken });
 
   const cookieStore = await cookies();
@@ -47,22 +54,28 @@ export async function signIn({ email, password }: SignInInput) {
     path: "/",
   });
 
-  return { id: user.id, email: user.email, role: user.role };
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  };
 }
+
+/* ---------------- SIGN UP ---------------- */
 
 export async function signUp({ email, password, pin }: SignUpInput) {
   if (pin !== "9095") throw new Error("INVALID_PIN");
 
-  const normalizedEmail = email.toLowerCase();
+  const normalizedEmail = email.toLowerCase().trim();
   const username = normalizedEmail.split("@")[0];
 
-  const existing = await db
+  const existingUser = await db
     .select({ id: users.id })
     .from(users)
     .where(eq(users.email, normalizedEmail))
     .limit(1);
 
-  if (existing.length) throw new Error("USER_EXISTS");
+  if (existingUser.length) throw new Error("USER_EXISTS");
 
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -88,17 +101,21 @@ export async function signUp({ email, password, pin }: SignUpInput) {
   return { success: true };
 }
 
+/* ---------------- LOGOUT ---------------- */
+
 export async function logout() {
   const cookieStore = await cookies();
   const token = cookieStore.get("rb_session")?.value;
 
   if (token) {
     await db.delete(sessions).where(eq(sessions.sessionToken, token));
+    cookieStore.delete("rb_session");
   }
 
-  cookieStore.delete("rb_session");
   return { success: true };
 }
+
+/* ---------------- CURRENT USER ---------------- */
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
@@ -109,7 +126,12 @@ export async function getCurrentUser() {
     .select({ user: users })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
-    .where(and(eq(sessions.sessionToken, token), gt(sessions.expiresAt, new Date())))
+    .where(
+      and(
+        eq(sessions.sessionToken, token),
+        gt(sessions.expiresAt, new Date())
+      )
+    )
     .limit(1);
 
   return result?.user ?? null;

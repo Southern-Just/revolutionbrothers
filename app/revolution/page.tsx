@@ -1,105 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+
 import AccountCard from "@/components/AccountCard";
 import RecentTransactions from "@/components/RecentTransactions";
 import DepositWithdraw from "@/components/DepositWithdraw";
 import Transactions from "@/components/Transactions";
 import Footer from "@/components/Footer";
-import {
-  getTransactions,
-} from "@/lib/users.systeme";
-import { getCurrentUser } from "@/lib/user.actions";
 
 type Tab = "transactions" | "deposit";
-
-type Role = "chairperson" | "secretary" | "treasurer" | "member";
 
 interface Member {
   id: string;
   email: string;
-  role: Role;
   name: string;
-}
-
-interface Transaction {
-  id: string;
-  userId: string;
-  name: string;
-  month?: string;
-  amount: number;
-  type: "credit" | "debit";
-  status: string;
-  category: string;
-  transactionCode: string;
-  occurredAt: string;
-  createdAt?: string;
 }
 
 export default function Revolution() {
-  const router = useRouter();
-
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  const [member, setMember] = useState<Member | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [totalBalance, setTotalBalance] = useState(0);
+  // Static member for now (can be replaced later)
+  const member: Member = {
+    id: "1",
+    email: "revolution@example.com",
+    name: "Revolution Brothers",
+  };
+
+  const totalBalance = 0;
+
+  /* ---------------- LOADER ---------------- */
 
   useEffect(() => {
-    const bootstrap = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (!user) {
-          router.replace("/");
-          return;
-        }
-
-        setMember({
-          id: user.id,
-          email: user.email,
-          role: user.role as Role,
-          name: user.email.split("@")[0],
-        });
-
-        const raw = await getTransactions(user.id);
-
-        const normalized: Transaction[] = raw.map((t) => ({
-          id: t.id,
-          userId: t.userId,
-          name: t.name,
-          month: t.month ?? undefined,
-          amount: Number(t.amount),
-          type: t.type as "credit" | "debit",
-          status: t.status,
-          category: t.category,
-          transactionCode: t.transactionCode,
-          occurredAt: new Date(t.occurredAt).toISOString(),
-          createdAt: t.createdAt
-            ? new Date(t.createdAt).toISOString()
-            : undefined,
-        }));
-
-        setTransactions(normalized);
-        setTotalBalance(
-          normalized.reduce((sum, t) => sum + t.amount, 0)
-        );
-      } catch {
-        router.replace("/");
-      }
-    };
-
-    bootstrap();
-  }, [router]);
-
-  useEffect(() => {
-    if (!loading) return;
-
-    const duration = 3000;
+    const duration = 2000;
     const intervalMs = 30;
     const step = (intervalMs / duration) * 100;
 
@@ -116,9 +52,11 @@ export default function Revolution() {
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [loading]);
+  }, []);
 
-  if (loading || !member) {
+  /* ---------------- LOADING SCREEN ---------------- */
+
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4 bg-gray-50">
         <Image
@@ -140,6 +78,8 @@ export default function Revolution() {
       </div>
     );
   }
+
+  /* ---------------- PAGE ---------------- */
 
   return (
     <main>
@@ -199,20 +139,11 @@ export default function Revolution() {
                 <Transactions onClose={() => setShowAllTransactions(false)} />
               )}
 
-              <RecentTransactions
-                transactions={transactions.slice(0, 5)}
-              />
+              <RecentTransactions />
             </>
           )}
 
-          {activeTab === "deposit" && (
-            <>
-              <h1 className="text-[16px] text-foreground text-center mb-2 ml-2">
-                Credit or Debit your Account
-              </h1>
-              <DepositWithdraw />
-            </>
-          )}
+          {activeTab === "deposit" && <DepositWithdraw />}
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">

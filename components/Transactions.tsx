@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { mockData } from "@/lib/mock";
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -21,7 +22,7 @@ const formatDateTime = (date: Date) =>
 
 interface Transaction {
   id: string;
-  userId: string;
+  userId?: string;
   name: string;
   amount: number;
   type: "credit" | "debit";
@@ -52,40 +53,46 @@ interface TransactionsProps {
 
 export default function Transactions({ onClose, userId }: TransactionsProps) {
   const [closing, setClosing] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [txs, setTxs] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const res = await fetch("/api/transactions");
-        if (!res.ok) throw new Error();
+      const data: Transaction[] = mockData.recentTransactions.map((t) => ({
+        id: t.id,
+        userId: undefined,
+        name: t.name ?? "",
+        amount: t.amount ?? 0,
+        type: t.type ?? "credit",
+        status: t.status ?? "",
+        category: t.category ?? "",
+        transactionCode: t.transactionCode ?? "",
+        occurredAt: t.date ?? new Date().toISOString(),
+      }));
 
-        const data = (await res.json()) as Transaction[];
-        const normalized = data.map((t) => ({
+      setTxs(
+        data.map((t) => ({
           ...t,
-          amount: Number(t.amount),
+          amount: Number(t.amount) || 0,
           occurredAt: new Date(t.occurredAt).toISOString(),
-        }));
-
-        setTransactions(normalized);
-      } finally {
-        setLoading(false);
-      }
+        }))
+      );
+      setLoading(false);
     };
 
     load();
   }, []);
 
   const filtered = useMemo(
-    () => (userId ? transactions.filter((t) => t.userId === userId) : transactions),
-    [transactions, userId]
+    () => (userId ? txs.filter((t) => t.userId === userId) : txs),
+    [txs, userId]
   );
 
   const sorted = useMemo(
     () =>
       [...filtered].sort(
-        (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime()
+        (a, b) =>
+          new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime()
       ),
     [filtered]
   );
@@ -136,7 +143,7 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Status
               </th>
-              <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+              <th className="px-10 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Date
               </th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
