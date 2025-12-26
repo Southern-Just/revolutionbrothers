@@ -22,12 +22,12 @@ const slides = [
 /* ---------------- Greeting and step ---------------- */
 const getGreeting = (hours: number, minutes: number, seconds: number) => {
   const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-  
+
   // Define time ranges in seconds
   const morningEnd = 11 * 3600; // 11:00 AM
   const almostNoonEnd = 12.5 * 3600; // 12:30 PM
   const afternoonEnd = 14 * 3600; // 2:00 PM
-  
+
   if (totalSeconds < morningEnd) return "Good Morning ☀️";
   if (totalSeconds < almostNoonEnd) return "Almost Noon 🌤️";
   if (totalSeconds < afternoonEnd) return "After Noon 🌇";
@@ -65,10 +65,10 @@ const HeroCarousel: React.FC = () => {
       const hours = now.getHours();
       const minutes = now.getMinutes();
       const seconds = now.getSeconds();
-      
+
       // Calculate total seconds in the day
       const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-      
+
       // Define transition points (in seconds)
       const morningStart = 0; // 12:00 AM
       const morningEnd = 11 * 3600; // 11:00 AM
@@ -86,7 +86,7 @@ const HeroCarousel: React.FC = () => {
       } else if (totalSeconds <= almostNoonEnd) {
         // Almost Noon: Center to Right
         progress = (totalSeconds - morningEnd) / (almostNoonEnd - morningEnd);
-        smoothOffset = (maxOffset / 2) + (maxOffset / 4) * progress; // 50% to 75% of max
+        smoothOffset = maxOffset / 2 + (maxOffset / 4) * progress; // 50% to 75% of max
       } else if (totalSeconds <= afternoonEnd) {
         // After Noon: Right (stays at right)
         smoothOffset = maxOffset;
@@ -143,28 +143,32 @@ const HeroCarousel: React.FC = () => {
 
       {/* ---------------- Slides ---------------- */}
       <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden bg-black">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/70 via-transparent to-transparent pointer-events-none" />
 
         {slides.map((slide, index) => (
           <div
             key={index}
-            className={`absolute inset-0 mt-6 px-6 flex flex-col space-y-6 transition-all duration-2000 ease-in-out ${
+            className={`absolute inset-0 mt-6 px-6 flex flex-col space-y-6 transition-all duration-2000 ease-in-out md:text-center ${
               index === currentIndex
                 ? "opacity-100 z-10"
                 : "opacity-0 z-0 pointer-events-none"
             }`}
           >
-            <h1 className="text-4xl md:text-5xl text-brand font-bold leading-tight">
+            <h1 className="text-4xl md:text-5xl md:hidden text-brand font-bold leading-tight mt-2">
               Revolution <br /> 〰〰〰Brothers
             </h1>
+            <h1 className="text-5xl md:text-5xl text-brand hidden md:block font-bold leading-tight mt-8">
+              Revolution 〰Brothers
+            </h1>
 
-            <h2 className="text-xl md:text-3xl font-bold text-white">
+            <h2 className="text-xl md:text-3xl font-bold text-white md:text-center">
               {slide.title}
             </h2>
-
-            <p className="text-xs md:text-2xl max-w-4xl text-white/90">
-              {slide.subtitle}
-            </p>
+            <div className=" text-xs md:text-xl md:text-center md:w-[60%] mx-auto text-white md:text-gray-400 ">
+              <p className="md:text-center">
+                {slide.subtitle}
+              </p>
+            </div>
           </div>
         ))}
       </div>
