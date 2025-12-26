@@ -41,13 +41,17 @@ export const userProfiles = pgTable("user_profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 255 }).notNull(),  
-  username: varchar("username", { length: 50 }).notNull().unique(),
-  nationalId: varchar("national_id", { length: 20 }).notNull(),
+    .references(() => users.id, { onDelete: "cascade" })
+    .unique(),
+  name: varchar("name", { length: 255 }),  
+  username: varchar("username", { length: 50 }).unique(),
+  nationalId: varchar("national_id", { length: 20 }).unique(),
   phone: varchar("phone", { length: 20 }),
   profileImage: varchar("profile_image", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
+
 
 /* ---------------- SESSIONS ---------------- */
 
@@ -68,7 +72,6 @@ export const transactions = pgTable("transactions", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 255 }).notNull(),
   month: varchar("month", { length: 7 }).notNull(),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   type: varchar("type", { length: 10 }).notNull(),

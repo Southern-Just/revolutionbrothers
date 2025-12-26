@@ -22,12 +22,12 @@ const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 /* ---------------- SIGN IN ---------------- */
 
 export async function signIn({ email, password }: SignInInput) {
-  const normalizedEmail = email.toLowerCase().trim();
+  const standardEmail = email.toLowerCase().trim();
 
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, normalizedEmail))
+    .where(eq(users.email, standardEmail))
     .limit(1);
 
   if (!user) throw new Error("INVALID_CREDENTIALS");

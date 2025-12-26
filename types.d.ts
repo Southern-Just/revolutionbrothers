@@ -2,7 +2,7 @@ export type UserRole = "chairperson" | "secretary" | "treasurer" | "member";
 export type TransactionStatus = "verified" | "pending" | "declined";
 export type TransactionType = "credit" | "debit";
 
-export interface UserRow {
+export interface userAuth {
   id: string;
   email: string;
   passwordHash: string;

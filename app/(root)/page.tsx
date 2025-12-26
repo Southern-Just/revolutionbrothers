@@ -1,7 +1,7 @@
 "use client";
 
 import HeroCarousel from "@/components/HeroCarousel";
-import { signIn, signUp } from "@/lib/user.actions";
+import { signIn, signUp } from "@/lib/actions/user.actions";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -69,8 +69,8 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <HeroCarousel />
-      <div className="relative z-10 -mt-32 mx-auto w-[90%] max-w-6xl">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 md:p-16 text-center min-h-[60vh] flex flex-col">
+      <div className="relative z-10 -mt-39 mx-auto w-[90%] max-w-6xl">
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 md:p-16 text-center min-h-[56vh] flex flex-col">
           <div className="grow">
             <h1 className="text-4xl md:text-6xl font-bold mb-4">Not Yet Uhuru</h1>
             <p className="text-brand text-lg md:text-xl">

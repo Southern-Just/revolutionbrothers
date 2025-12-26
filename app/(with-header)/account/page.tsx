@@ -1,10 +1,10 @@
-import Profile from '@/components/Profile'
-import React from 'react'
+import AccountProfile from "@/components/AccountProfile"
 
 const page = () => {
   return (
     <div>
-      <Profile/>
+      <AccountProfile/>
+      
     </div>
   )
 }

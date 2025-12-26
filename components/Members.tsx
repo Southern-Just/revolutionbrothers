@@ -1,28 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { mockData } from "@/lib/mock";
+import { getAllUsers, type MemberDTO } from "@/lib/actions/user.systeme";
 
-const ACTIVE_USER_ID = "1";
-
-const OFFICIAL_ROLES = ["Chairman", "Secretary", "Treasurer"] as const;
-type OfficialRole = typeof OFFICIAL_ROLES[number];
-
-interface Member {
-  userId: string;
-  name: string;
-  role: string;
-  image: string | null;
-  phone?: string;
-  contributions: { month: string; amount: number }[];
-}
-
+const OFFICIAL_ROLES = ["chairperson", "secretary", "treasurer"] as const;
+type OfficialRole = (typeof OFFICIAL_ROLES)[number];
 const isOfficial = (role: string): role is OfficialRole =>
   OFFICIAL_ROLES.includes(role as OfficialRole);
 
 export default function Members() {
-  const [members] = useState<Member[]>(mockData.members);
+  const [members, setMembers] = useState<MemberDTO[]>([]);
+  const [activeUserId, setActiveUserId] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getAllUsers();
+        setMembers(data.members);
+        setActiveUserId(data.activeUserId);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center text-gray-400 bg-gray-50">
+        <Image
+          src="/icons/loader1.svg"
+          alt="Loading"
+          width={220}
+          height={220}
+          className="animate-spin"
+        />
+        <p className="text-gray-700 text-sm">Loading members…</p>
+      </div>
+    );
+  }
 
   const officials = members
     .filter((m) => isOfficial(m.role))
@@ -35,7 +53,7 @@ export default function Members() {
   const others = members.filter((m) => !isOfficial(m.role));
   const sortedOthers = (() => {
     const copy = [...others];
-    const idx = copy.findIndex((m) => m.userId === ACTIVE_USER_ID);
+    const idx = copy.findIndex((m) => m.userId === activeUserId);
     if (idx > -1) {
       const [active] = copy.splice(idx, 1);
       return [active, ...copy];
@@ -46,10 +64,14 @@ export default function Members() {
   return (
     <div className="min-h-screen items-start flex justify-center px-2">
       <div className="flex flex-col items-center space-y-4 py-3 w-full max-w-6xl">
-        <h1 className="text-xl font-bold text-center">
-          {mockData.groupName} Members :
-          <span className="text-brand"> KIKOSI</span>
+        <h1 className="text-xl font-bold text-center bg-brand/10 p-2 rounded-sm backdrop-blur-3xl">
+          REVOLUTION BROTHERS Members :{" "}
+          <span className="text-brand">KIKOSI</span>
         </h1>
+        {/* <h1 className="text-xl font-bold text-center bg-brand/10 p-2 rounded-sm backdrop-blur-3xl">
+          REVOLUTION BROTHERS Members :{" "}
+          <span className="text-brand">KIKOSI</span>
+        </h1> */}
 
         <p className="text-gray-400 text-lg text-center">Officials 2025–2026</p>
 
@@ -67,7 +89,7 @@ export default function Members() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-6 w-full justify-items-center">
           {sortedOthers.map((member) => {
-            const isActive = member.userId === ACTIVE_USER_ID;
+            const isActive = member.userId === activeUserId;
 
             return (
               <div
@@ -84,7 +106,7 @@ export default function Members() {
 
                   <div className="w-12 h-12 rounded-full overflow-hidden border border-black/30 p-0.5 flex items-center justify-center bg-gray-200">
                     <Image
-                      src={member.image || "/icons/profiles.svg"}
+                      src={member.profileImage || "/icons/profiles.svg"}
                       alt={member.name}
                       width={40}
                       height={40}
@@ -97,7 +119,9 @@ export default function Members() {
                   <span className="text-[10px] text-gray-400">
                     ID: {member.userId}
                   </span>
-                  <span className="text-xs italic text-gray-400">Signature</span>
+                  <span className="text-xs italic text-gray-400">
+                    Signature
+                  </span>
                 </div>
               </div>
             );
