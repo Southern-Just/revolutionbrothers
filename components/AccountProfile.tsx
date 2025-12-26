@@ -147,7 +147,7 @@ export default function AccountProfile() {
 
       {/* PROFILE HEADER */}
       <div className="mb-4 flex justify-center">
-        <div className="flex w-[94%] max-w-md items-center justify-between gap-8 rounded-2xl border-t border-gray-300 bg-white/5 p-4 shadow">
+        <div className="flex w-[94%] max-w-md items-center justify-between gap-8 rounded-2xl border border-gray-200 p-4 shadow-sm">
           <label className="relative cursor-pointer">
             <div className="relative h-20 w-20 overflow-hidden rounded-full border bg-gray-200 p-0.5">
               <Image
@@ -188,7 +188,7 @@ export default function AccountProfile() {
       </div>
 
       {/* DETAILS */}
-      <section className="rounded-2xl bg-white px-5 py-4 shadow-sm">
+      <section className="px-5 py-4 ">
         {fields.map(({ label, key }) => (
           <div key={key} className="mb-4 flex justify-between gap-4">
             <span className="text-sm text-gray-500">{label}</span>
