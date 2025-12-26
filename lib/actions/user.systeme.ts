@@ -1,12 +1,8 @@
 "use server";
 
 import { db } from "@/lib/database/db";
-import {
-  users,
-  userProfiles,
-  transactions,
-} from "@/lib/database/schema";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { users, userProfiles } from "@/lib/database/schema";
+import { eq, sql } from "drizzle-orm";
 import { getCurrentUser } from "./user.actions";
 
 /* ---------------- TYPES ---------------- */
@@ -26,44 +22,13 @@ export type MyProfile = {
   username: string;
   phone: string;
   nationalId: string;
-  profileImage?: string | null; 
+  profileImage?: string | null;
+  role: "chairperson" | "secretary" | "treasurer" | "member";
 };
 
 export type UpdateUserProfileInput = Partial<MyProfile>;
 
-export type TransactionDTO = {
-  id: string;
-  userId: string;
-  month: string;
-  amount: number;
-  name: string;
-  type: "credit" | "debit";
-  status: "pending" | "verified" | "declined";
-  category: string;
-  transactionCode: string;
-  occurredAt: Date;
-  createdAt: Date;
-};
-
-export type CreateTransactionInput = {
-  month: string;
-  amount: number;
-  type: "credit" | "debit";
-  category: string;
-  transactionCode: string;
-  occurredAt: Date;
-};
-
-export type UpdateTransactionInput = Partial<{
-  month: string;
-  amount: number;
-  type: "credit" | "debit";
-  category: string;
-  occurredAt: Date;
-  status: "pending" | "verified" | "declined";
-}>;
-
-/* ---------------- USER PROFILE ---------------- */
+/* ---------------- PROFILE ---------------- */
 
 export async function getMyProfile(): Promise<MyProfile | null> {
   const currentUser = await getCurrentUser();
@@ -76,7 +41,8 @@ export async function getMyProfile(): Promise<MyProfile | null> {
       username: userProfiles.username,
       phone: userProfiles.phone,
       nationalId: userProfiles.nationalId,
-      profileImage: userProfiles.profileImage,  // Added to fetch profileImage
+      profileImage: userProfiles.profileImage,
+      role: users.role,
     })
     .from(users)
     .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
@@ -89,7 +55,8 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     username: row?.username ?? "",
     phone: row?.phone ?? "",
     nationalId: row?.nationalId ?? "",
-    profileImage: row?.profileImage ?? null,  // Added to return profileImage
+    profileImage: row?.profileImage ?? null,
+    role: row?.role ?? "member",
   };
 }
 
@@ -97,36 +64,34 @@ export async function updateMyProfile(input: UpdateUserProfileInput) {
   const currentUser = await getCurrentUser();
   if (!currentUser) throw new Error("UNAUTHORIZED");
 
-  const { email, ...profileData } = input;
+  const { email, role, ...profileData } = input;
 
   if (email) {
     await db
       .update(users)
-      .set({
-        email: email.toLowerCase().trim(),
-        updatedAt: new Date(),
-      })
+      .set({ email: email.toLowerCase().trim(), updatedAt: new Date() })
       .where(eq(users.id, currentUser.id));
   }
 
-  // Explicitly check if a userProfiles row exists for this user
-  const existingProfile = await db
+  if (role) {
+    await db
+      .update(users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(users.id, currentUser.id));
+  }
+
+  const existing = await db
     .select()
     .from(userProfiles)
     .where(eq(userProfiles.userId, currentUser.id))
     .limit(1);
 
-  if (existingProfile.length > 0) {
-    // Update the existing row
+  if (existing.length) {
     await db
       .update(userProfiles)
-      .set({
-        ...profileData,
-        updatedAt: new Date(),
-      })
+      .set({ ...profileData, updatedAt: new Date() })
       .where(eq(userProfiles.userId, currentUser.id));
   } else {
-    // Insert a new row if none exists
     await db.insert(userProfiles).values({
       userId: currentUser.id,
       ...profileData,
@@ -170,154 +135,7 @@ export async function getAllUsers(): Promise<{
   };
 }
 
-/* ---------------- TRANSACTIONS ---------------- */
-
-export async function createTransaction(input: CreateTransactionInput) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-
-  const [tx] = await db
-    .insert(transactions)
-    .values({
-      userId: currentUser.id,
-      month: input.month,
-      amount: input.amount,
-      type: input.type,
-      category: input.category,
-      transactionCode: input.transactionCode,
-      occurredAt: input.occurredAt,
-      status: "pending",
-    })
-    .returning();
-
-  return tx;
-}
-
-export async function getMyTransactions(): Promise<TransactionDTO[]> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-
-  const rows = await db
-    .select({
-      id: transactions.id,
-      userId: transactions.userId,
-      name: sql<string>`coalesce(${userProfiles.name}, ${users.email})`,
-      month: transactions.month,
-      amount: transactions.amount,
-      type: transactions.type,
-      status: transactions.status,
-      category: transactions.category,
-      transactionCode: transactions.transactionCode,
-      occurredAt: transactions.occurredAt,
-      createdAt: transactions.createdAt,
-    })
-    .from(transactions)
-    .leftJoin(users, eq(users.id, transactions.userId))
-    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .where(eq(transactions.userId, currentUser.id))
-    .orderBy(desc(transactions.occurredAt));
-
-  return rows;
-}
-
-export async function getTransactionById(id: string) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-
-  const [tx] = await db
-    .select({
-      id: transactions.id,
-      userId: transactions.userId,
-      name: sql<string>`coalesce(${userProfiles.name}, ${users.email})`,
-      month: transactions.month,
-      amount: transactions.amount,
-      type: transactions.type,
-      status: transactions.status,
-      category: transactions.category,
-      transactionCode: transactions.transactionCode,
-      occurredAt: transactions.occurredAt,
-      createdAt: transactions.createdAt,
-    })
-    .from(transactions)
-    .leftJoin(users, eq(users.id, transactions.userId))
-    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.userId, currentUser.id)
-      )
-    )
-    .limit(1);
-
-  return tx ?? null;
-}
-
-export async function updateTransaction(
-  transactionId: string,
-  input: UpdateTransactionInput
-) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-
-  const [updated] = await db
-    .update(transactions)
-    .set(input)
-    .where(
-      and(
-        eq(transactions.id, transactionId),
-        eq(transactions.userId, currentUser.id)
-      )
-    )
-    .returning();
-
-  if (!updated) throw new Error("NOT_FOUND");
-
-  return updated;
-}
-
-export async function deleteTransaction(transactionId: string) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-
-  const deleted = await db
-    .delete(transactions)
-    .where(
-      and(
-        eq(transactions.id, transactionId),
-        eq(transactions.userId, currentUser.id)
-      )
-    )
-    .returning();
-
-  if (!deleted.length) throw new Error("NOT_FOUND");
-
-  return { success: true };
-}
-
-export async function getRecentTransactions(limit = 6): Promise<TransactionDTO[]> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-
-  const rows = await db
-    .select({
-      id: transactions.id,
-      userId: transactions.userId,
-      name: sql<string>`coalesce(${userProfiles.name}, ${users.email})`,
-      month: transactions.month,
-      amount: transactions.amount,
-      type: transactions.type,
-      status: transactions.status,
-      category: transactions.category,
-      transactionCode: transactions.transactionCode,
-      occurredAt: transactions.occurredAt,
-      createdAt: transactions.createdAt,
-    })
-    .from(transactions)
-    .leftJoin(users, eq(users.id, transactions.userId))
-    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .where(eq(transactions.userId, currentUser.id))
-    .orderBy(desc(transactions.occurredAt))
-    .limit(limit);
-
-  return rows;
+export async function getTreasurerPhone(): Promise<string | null> {
+  const { members } = await getAllUsers();
+  return members.find((m) => m.role === "treasurer")?.phone ?? null;
 }

@@ -1,25 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getMyTransactions } from "@/lib/actions/user.systeme";
+
 import Image from "next/image";
-
-const formatAmount = (amount: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(Math.abs(amount));
-
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: true,
-  }).format(date);
+import { getAllTransactions, getMyTransactions } from "@/lib/actions/user.transactions";
 
 interface Transaction {
   id: string;
@@ -34,11 +18,7 @@ interface Transaction {
   month: string;
 }
 
-interface CategoryBadgeProps {
-  category: string;
-}
-
-const CategoryBadge = ({ category }: CategoryBadgeProps) => (
+const CategoryBadge = ({ category }: { category: string }) => (
   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-100">
     <div className="w-1.5 h-1.5 rounded-full bg-gray-500" />
     <span className="text-[10px] sm:text-xs font-medium text-gray-700">
@@ -57,45 +37,50 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const isPersonalView = Boolean(userId);
+
   useEffect(() => {
     const load = async () => {
-      try {
-        setLoading(true);
-        const data = await getMyTransactions();
-        setTxs(
-          data.map((t) => ({
-            id: t.id,
-            userId: t.userId,
-            name: "Me",
-            amount: Number(t.amount),
-            type: t.type as "credit" | "debit",
-            status: t.status,
-            category: t.category,
-            transactionCode: t.transactionCode,
-            occurredAt: t.occurredAt.toISOString(),
-            month: t.month,
-          }))
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+      setLoading(true);
 
-  const filtered = useMemo(
-    () => (userId ? txs.filter((t) => t.userId === userId) : txs),
-    [txs, userId]
-  );
+      const data = isPersonalView
+        ? await getMyTransactions()
+        : await getAllTransactions();
+
+      setTxs(
+        data.map((t) => ({
+          id: t.id,
+          userId: t.userId,
+          name: isPersonalView ? "Me" : t.name,
+          amount: Number(t.amount),
+          type: t.type,
+          status: t.status,
+          category: t.category,
+          transactionCode: t.transactionCode,
+          occurredAt: t.occurredAt.toISOString(),
+          month: t.month,
+        }))
+      );
+
+      setLoading(false);
+    };
+
+    load();
+  }, [isPersonalView]);
+
+  const visibleTxs = useMemo(() => {
+    if (!isPersonalView) return txs;
+    return txs.filter((t) => t.userId === userId);
+  }, [txs, userId, isPersonalView]);
 
   const sorted = useMemo(
     () =>
-      [...filtered].sort(
+      [...visibleTxs].sort(
         (a, b) =>
           new Date(b.occurredAt).getTime() -
           new Date(a.occurredAt).getTime()
       ),
-    [filtered]
+    [visibleTxs]
   );
 
   const handleClose = () => {
@@ -106,15 +91,17 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center">
-              <Image
-                src="/icons/loader1.svg"
-                alt="Loading"
-                width={220}
-                height={220}
-                className="animate-spin"
-              />
-              <p className="text-gray-700 text-sm">All Transactions…</p>
-            </div>
+        <Image
+          src="/icons/loader1.svg"
+          alt="Loading"
+          width={220}
+          height={220}
+          className="animate-spin"
+        />
+        <p className="text-gray-700 text-sm">
+          {isPersonalView ? "My Transactions…" : "All Transactions…"}
+        </p>
+      </div>
     );
   }
 
@@ -126,7 +113,7 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
     >
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">
-          {userId ? "My Transactions" : "All Transactions"}
+          {isPersonalView ? "My Transactions" : "All Transactions"}
         </h2>
         <button
           onClick={handleClose}
@@ -140,7 +127,7 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {!userId && (
+              {!isPersonalView && (
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Name
                 </th>
@@ -151,7 +138,7 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Status
               </th>
-              <th className="px-10 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+              <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Date
               </th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -160,98 +147,54 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
               <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Category
               </th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Month
-              </th>
             </tr>
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {sorted.map((t, index) => {
+            {sorted.map((t) => {
               const isDebit = t.type === "debit";
-              const amount = formatAmount(t.amount);
-              const date = new Date(t.occurredAt);
-              const currentMonth = date.toLocaleString("en-US", {
-                month: "long",
-                year: "numeric",
-              });
-
-              const showMonth =
-                index === 0 ||
-                currentMonth !==
-                  new Date(sorted[index - 1].occurredAt).toLocaleString(
-                    "en-US",
-                    { month: "long", year: "numeric" }
-                  );
 
               return (
                 <tr key={t.id} className={isDebit ? "bg-red-50" : "bg-green-50"}>
-                  {!userId && (
+                  {!isPersonalView && (
                     <td className="px-3 sm:px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
                         {t.name}
                       </div>
                     </td>
                   )}
+
                   <td className="px-3 sm:px-6 py-4">
                     <span
                       className={`text-sm font-semibold ${
                         isDebit ? "text-red-600" : "text-green-600"
                       }`}
                     >
-                      {isDebit ? `-${amount}` : `+${amount}`}
+                      {isDebit ? "-" : "+"} KSh
+                      {Math.abs(t.amount).toLocaleString("en-KE")}
                     </span>
                   </td>
+
                   <td className="px-3 sm:px-6 py-4">
                     <CategoryBadge category={t.status} />
                   </td>
+
                   <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
-                    {formatDateTime(date)}
+                    {new Date(t.occurredAt).toLocaleString()}
                   </td>
+
                   <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
                     {t.transactionCode}
                   </td>
+
                   <td className="hidden md:table-cell px-6 py-4">
                     <CategoryBadge category={t.category} />
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 text-[9px] text-gray-400">
-                    {showMonth ? currentMonth : ""}
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-      </div>
-
-      <div className="flex justify-end mt-4">
-        <button
-          onClick={() => {
-            const csv =
-              "data:text/csv;charset=utf-8," +
-              sorted
-                .map((t) =>
-                  [
-                    !userId ? t.name : "",
-                    t.amount,
-                    t.type,
-                    t.status,
-                    t.occurredAt,
-                    t.transactionCode,
-                    t.category,
-                  ].join(",")
-                )
-                .join("\n");
-
-            const link = document.createElement("a");
-            link.href = encodeURI(csv);
-            link.download = "transactions.csv";
-            link.click();
-          }}
-          className="px-4 py-2 rounded-lg bg-brand text-white hover:bg-brand/80"
-        >
-          Download CSV
-        </button>
       </div>
     </div>
   );

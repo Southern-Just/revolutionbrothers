@@ -2,27 +2,37 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 import AccountCard from "@/components/AccountCard";
 import RecentTransactions from "@/components/RecentTransactions";
 import DepositWithdraw from "@/components/DepositWithdraw";
 import Transactions from "@/components/Transactions";
 import Footer from "@/components/Footer";
-import { getMyProfile, type MyProfile } from "@/lib/actions/user.systeme";
+import {
+  getMyProfile,
+  getTreasurerPhone,
+  type MyProfile,
+} from "@/lib/actions/user.systeme";
 
 type Tab = "transactions" | "deposit";
 
 export default function Revolution() {
-  const [activeTab, setActiveTab] = useState<Tab>("transactions");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as Tab | null;
+
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabParam === "deposit" ? "deposit" : "transactions"
+  );
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [userProfile, setUserProfile] = useState<MyProfile | null>(null);
+  const [treasurerPhone, setTreasurerPhone] = useState<string | null>(null);
 
   const totalBalance = 0;
 
-  /* ---------------- LOADER ---------------- */
-
+  // Loading animation for the page
   useEffect(() => {
     const duration = 2000;
     const intervalMs = 30;
@@ -43,13 +53,11 @@ export default function Revolution() {
     return () => clearInterval(interval);
   }, []);
 
-  /* ---------------- FETCH USER PROFILE ---------------- */
-
+  // Fetch profile and treasurer phone
   useEffect(() => {
     getMyProfile().then(setUserProfile);
+    getTreasurerPhone().then(setTreasurerPhone);
   }, []);
-
-  /* ---------------- LOADING SCREEN ---------------- */
 
   if (loading) {
     return (
@@ -73,8 +81,6 @@ export default function Revolution() {
       </div>
     );
   }
-
-  /* ---------------- PAGE ---------------- */
 
   return (
     <main>
@@ -138,11 +144,16 @@ export default function Revolution() {
             </>
           )}
 
-          {activeTab === "deposit" && <DepositWithdraw />}
+          {activeTab === "deposit" && (
+            <DepositWithdraw
+              userProfile={userProfile}
+              treasurerPhone={treasurerPhone || "N/A"}
+            />
+          )}
         </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Welcome {userProfile ? (userProfile.username || userProfile.email) : 'Loading...'}
+        <p className="text-center tracking-wider text-brand text-sm mt-6">
+          akĩrí fĩo {userProfile?.username ? userProfile.username : "mwãna"}
         </p>
       </section>
 
