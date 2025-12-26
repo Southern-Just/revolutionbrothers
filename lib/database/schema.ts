@@ -3,10 +3,10 @@ import {
   varchar,
   boolean,
   timestamp,
-  numeric,
   text,
   uuid,
   pgEnum,
+  integer,
 } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", [
@@ -20,6 +20,10 @@ export const transactionStatus = pgEnum("transaction_status", [
   "verified",
   "pending",
   "declined",
+]);
+export const transactionType = pgEnum("transaction_type", [
+  "credit",
+  "debit",
 ]);
 
 /* ---------------- USERS ---------------- */
@@ -73,11 +77,12 @@ export const transactions = pgTable("transactions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   month: varchar("month", { length: 7 }).notNull(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  type: varchar("type", { length: 10 }).notNull(),
+  amount: integer("amount").notNull(),
+  type: transactionType("type").notNull(),
   status: transactionStatus("transaction_status").notNull().default("pending"),
   category: varchar("category", { length: 50 }).notNull(),
   transactionCode: varchar("transaction_code", { length: 100 }).notNull(),
   occurredAt: timestamp("occurred_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+

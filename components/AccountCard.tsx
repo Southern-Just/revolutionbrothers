@@ -1,24 +1,31 @@
-import Image from 'next/image';
-import Link from 'next/link';
+import Image from "next/image";
+import Link from "next/link";
 
 type AccountCardProps = {
-  fullName: string;
-  username: string;
+  fullName?: string;
+  username?: string;
   balance?: number;
   accountMask?: string;
   linkHref?: string;
 };
 
 const AccountCard = ({
-  fullName,
-  username,
+  fullName = "",
+  username = "",
   balance = 0,
   accountMask = "5678",
-  linkHref = "/finances"
+  linkHref = "/finances",
 }: AccountCardProps) => {
-  const formattedBalance = balance != null 
-    ? balance.toLocaleString("en-KE") 
-    : "0";
+  const formattedBalance =
+    balance != null ? balance.toLocaleString("en-KE") : "0";
+
+  const displayName =
+    fullName.trim() || username.trim() || "—";
+
+  const displayUsername =
+    username.trim() ||
+    fullName.split(" ")[0] ||
+    "member";
 
   return (
     <div className="flex flex-col">
@@ -26,7 +33,7 @@ const AccountCard = ({
         <div className="bank-card_content">
           <div>
             <h1 className="text-[16px] font-semibold text-white">
-              {fullName}
+              {displayName}
             </h1>
             <p className="font-ibm-plex-serif font-black text-white">
               KSh {formattedBalance}
@@ -36,14 +43,15 @@ const AccountCard = ({
           <article className="flex flex-col gap-2">
             <div className="flex justify-between">
               <h1 className="text-12 font-semibold text-white">
-                {username}
+                {displayUsername}
               </h1>
               <h2 className="text-12 font-semibold text-white">
                 ●● / ●●
               </h2>
             </div>
             <p className="text-14 font-semibold tracking-[1.1px] text-white">
-              ●●●● ●●●● ●●●● <span className="text-16">{accountMask}</span>
+              ●●●● ●●●● ●●●●{" "}
+              <span className="text-16">{accountMask}</span>
             </p>
           </article>
         </div>
@@ -71,7 +79,6 @@ const AccountCard = ({
           alt="lines"
           className="absolute top-0 left-0"
           loading="eager"
-
         />
       </Link>
     </div>

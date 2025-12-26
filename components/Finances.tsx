@@ -1,43 +1,118 @@
 "use client";
-import { mockData } from "@/lib/mock";
+
 import AccountCard from "./AccountCard";
-import { useRouter } from "next/navigation";
-import Header from "./Header";
 import Footer from "./Footer";
 import Transactions from "./Transactions";
-import { useState } from "react";
-
-const ACTIVE_USER_ID = "1"; // Change or make dynamic as needed
+import { useState, useEffect } from "react";
+import { getMyProfile, getMyTransactions } from "@/lib/actions/user.systeme";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const Finances = () => {
+  const [showTransactions, setShowTransactions] = useState(false);
   const router = useRouter();
-const [showTransactions, setShowTransactions] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [monthlyContributions, setMonthlyContributions] = useState<
+    { month: string; amount: number }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
 
-  const user = mockData.members.find((u) => u.userId === ACTIVE_USER_ID);
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const profile = await getMyProfile();
+        const transactions = await getMyTransactions();
 
-  if (!user) {
+        if (!profile) {
+          setLoading(false);
+          return;
+        }
+
+        setUserName(profile.name);
+        setUserEmail(profile.email);
+
+        const credits = transactions.filter((t) => t.type === "credit");
+
+        const monthMap = new Map<string, number>();
+        for (const tx of credits) {
+          monthMap.set(tx.month, (monthMap.get(tx.month) ?? 0) + tx.amount);
+        }
+
+        setMonthlyContributions(
+          Array.from(monthMap.entries()).map(([month, amount]) => ({
+            month,
+            amount,
+          }))
+        );
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  if (loading) {
     return (
-      <main className="min-h-screen px-6 py-2">
-        <Header />
-        <p className="text-gray-500 text-center mt-10">
-          No financial data available for this user.
-        </p>
+      <div className="flex flex-col min-h-screen items-center justify-center text-gray-400 bg-gray-50">
+        <Image
+          src="/icons/loader1.svg"
+          alt="Loading"
+          width={220}
+          height={220}
+          className="animate-spin"
+        />
+        <p className="text-gray-700 text-sm">In a Sec Big Man</p>
+      </div>
+    );
+  }
+
+  if (!monthlyContributions.length) {
+    return (
+      <main className="min-h-screen flex flex-col justify-center items-center py-2 space-y-80">
+        <div className="space-y-6">
+          <h1 className="text-brand text-shadow-amber-300 text-4xl text-bold text-center">
+            OOPs G !!! <br /> 🤥
+          </h1>
+          <p className="text-gray-500 text-center mt-4">
+            No Financial data found for G: <br />
+            <span className="text-brand text-xl">{userName || userEmail}</span>
+          </p>
+          <button
+            className="absolute bottom-60 right-15 bg-white border-t border-t-gray-300 shadow-lg shadow-gray-400 p-4 py-2 text-xs rounded-lg"
+            onClick={() => {
+              router.push("/revolution");
+            }}
+          >
+            Start Your Journey
+          </button>
+        </div>
+        <Footer />
       </main>
     );
   }
 
-  const totalSavings = user.contributions.reduce((sum, c) => sum + c.amount, 0);
-  const averageMonthly = Math.round(totalSavings / user.contributions.length);
+  const totalSavings = monthlyContributions.reduce(
+    (sum, c) => sum + c.amount,
+    0
+  );
 
-  const latestMonth = user.contributions[user.contributions.length - 1].month;
+  const averageMonthly = Math.round(totalSavings / monthlyContributions.length);
+
+  const latestMonth =
+    monthlyContributions[monthlyContributions.length - 1].month;
+
   const asOfDate = new Date(`${latestMonth}-01`).toLocaleDateString("en-KE", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 
-  // Extract first name for username display
-  const username = user.name.split(" ")[0];
+  const username = userName.split(" ")[0];
 
   return (
     <main className="min-h-screen text-foreground px-4 py-4 space-y-3 page-animate">
@@ -48,7 +123,7 @@ const [showTransactions, setShowTransactions] = useState(false);
 
       <div className="w-[90%] mx-auto">
         <AccountCard
-          fullName={user.name}
+          fullName={userName}
           username={username}
           balance={totalSavings}
           accountMask="5678"
@@ -62,7 +137,7 @@ const [showTransactions, setShowTransactions] = useState(false);
         </p>
 
         <div className="px-4 py-2 rounded-xl flex justify-between pr-4 gap-4 items-center">
-          <p className="text-md  text-center">Monthly Average </p>
+          <p className="text-md text-center">Monthly Average </p>
           <p className="text-xl text-brand font-semibold text-center">
             KSh {averageMonthly.toLocaleString("en-KE")}
           </p>
@@ -73,7 +148,7 @@ const [showTransactions, setShowTransactions] = useState(false);
         <p className="text-md text-brand">Monthly Contributions</p>
 
         <div className="space-y-3">
-          {user.contributions
+          {monthlyContributions
             .slice()
             .reverse()
             .map((entry) => (
@@ -93,20 +168,21 @@ const [showTransactions, setShowTransactions] = useState(false);
               </div>
             ))}
         </div>
+
         <div className="flex justify-end">
-          <button className="border border-brand bg-brand/10 rounded-lg p-1"
-              onClick={() => setShowTransactions(true)}
->
+          <button
+            className="border border-brand bg-brand/10 rounded-lg p-1"
+            onClick={() => setShowTransactions(true)}
+          >
             My Transactions
           </button>
         </div>
+
         {showTransactions && (
-  <Transactions
-    onClose={() => setShowTransactions(false)}
-    userId={user.userId}
-  />
-)}
+          <Transactions onClose={() => setShowTransactions(false)} />
+        )}
       </section>
+
       <Footer />
     </main>
   );

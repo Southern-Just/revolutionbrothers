@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { mockData } from "@/lib/mock";
+import { getMyTransactions } from "@/lib/actions/user.systeme";
+import Image from "next/image";
 
 const formatAmount = (amount: number) =>
   new Intl.NumberFormat("en-US", {
@@ -22,15 +23,15 @@ const formatDateTime = (date: Date) =>
 
 interface Transaction {
   id: string;
-  userId?: string;
+  userId: string;
   name: string;
   amount: number;
   type: "credit" | "debit";
-  status: string;
+  status: "pending" | "verified" | "declined";
   category: string;
   transactionCode: string;
   occurredAt: string;
-  month?: string;
+  month: string;
 }
 
 interface CategoryBadgeProps {
@@ -58,28 +59,27 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
 
   useEffect(() => {
     const load = async () => {
-      const data: Transaction[] = mockData.recentTransactions.map((t) => ({
-        id: t.id,
-        userId: undefined,
-        name: t.name ?? "",
-        amount: t.amount ?? 0,
-        type: t.type ?? "credit",
-        status: t.status ?? "",
-        category: t.category ?? "",
-        transactionCode: t.transactionCode ?? "",
-        occurredAt: t.date ?? new Date().toISOString(),
-      }));
-
-      setTxs(
-        data.map((t) => ({
-          ...t,
-          amount: Number(t.amount) || 0,
-          occurredAt: new Date(t.occurredAt).toISOString(),
-        }))
-      );
-      setLoading(false);
+      try {
+        setLoading(true);
+        const data = await getMyTransactions();
+        setTxs(
+          data.map((t) => ({
+            id: t.id,
+            userId: t.userId,
+            name: "Me",
+            amount: Number(t.amount),
+            type: t.type as "credit" | "debit",
+            status: t.status,
+            category: t.category,
+            transactionCode: t.transactionCode,
+            occurredAt: t.occurredAt.toISOString(),
+            month: t.month,
+          }))
+        );
+      } finally {
+        setLoading(false);
+      }
     };
-
     load();
   }, []);
 
@@ -92,7 +92,8 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
     () =>
       [...filtered].sort(
         (a, b) =>
-          new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime()
+          new Date(b.occurredAt).getTime() -
+          new Date(a.occurredAt).getTime()
       ),
     [filtered]
   );
@@ -104,9 +105,16 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
-        Loading…
-      </div>
+      <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center">
+              <Image
+                src="/icons/loader1.svg"
+                alt="Loading"
+                width={220}
+                height={220}
+                className="animate-spin"
+              />
+              <p className="text-gray-700 text-sm">All Transactions…</p>
+            </div>
     );
   }
 
@@ -171,16 +179,18 @@ export default function Transactions({ onClose, userId }: TransactionsProps) {
               const showMonth =
                 index === 0 ||
                 currentMonth !==
-                  new Date(sorted[index - 1].occurredAt).toLocaleString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  });
+                  new Date(sorted[index - 1].occurredAt).toLocaleString(
+                    "en-US",
+                    { month: "long", year: "numeric" }
+                  );
 
               return (
                 <tr key={t.id} className={isDebit ? "bg-red-50" : "bg-green-50"}>
                   {!userId && (
                     <td className="px-3 sm:px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{t.name}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {t.name}
+                      </div>
                     </td>
                   )}
                   <td className="px-3 sm:px-6 py-4">

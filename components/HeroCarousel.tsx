@@ -20,16 +20,18 @@ const slides = [
 ] as const;
 
 /* ---------------- Greeting and step ---------------- */
-const getGreeting = (hours: number) => {
-  if (hours < 11) return "Good Morning ☀️";
-  if (hours < 14) return "Almost Noon 🌤️ / After Noon 🌇";
+const getGreeting = (hours: number, minutes: number, seconds: number) => {
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+  
+  // Define time ranges in seconds
+  const morningEnd = 11 * 3600; // 11:00 AM
+  const almostNoonEnd = 12.5 * 3600; // 12:30 PM
+  const afternoonEnd = 14 * 3600; // 2:00 PM
+  
+  if (totalSeconds < morningEnd) return "Good Morning ☀️";
+  if (totalSeconds < almostNoonEnd) return "Almost Noon 🌤️";
+  if (totalSeconds < afternoonEnd) return "After Noon 🌇";
   return "Good Evening 🌙";
-};
-
-const getStepForHour = (hours: number) => {
-  if (hours < 11) return 0; // left
-  if (hours < 14) return 1; // middle
-  return 2; // right
 };
 
 const HeroCarousel: React.FC = () => {
@@ -48,37 +50,55 @@ const HeroCarousel: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
-  /* ---------------- Real-time 3-stop glide ---------------- */
+  /* ---------------- Real-time smooth scrolling ---------------- */
   useEffect(() => {
     const updatePosition = () => {
       const container = containerRef.current;
       const greetingEl = greetingRef.current;
       if (!container || !greetingEl) return;
 
-      const max = container.offsetWidth - greetingEl.offsetWidth;
-      const middle = max / 2;
+      const containerWidth = container.offsetWidth;
+      const greetingWidth = greetingEl.offsetWidth;
+      const maxOffset = containerWidth - greetingWidth;
 
       const now = new Date();
       const hours = now.getHours();
       const minutes = now.getMinutes();
       const seconds = now.getSeconds();
+      
+      // Calculate total seconds in the day
+      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+      
+      // Define transition points (in seconds)
+      const morningStart = 0; // 12:00 AM
+      const morningEnd = 11 * 3600; // 11:00 AM
+      const almostNoonEnd = 12.5 * 3600; // 12:30 PM
+      const afternoonEnd = 14 * 3600; // 2:00 PM
+      const dayEnd = 24 * 3600; // 12:00 AM
 
-      const step = getStepForHour(hours);
       let smoothOffset = 0;
+      let progress = 0;
 
-      if (step === 0) {
-        smoothOffset = 0; // left
-      } else if (step === 1) {
-        // fraction through 11:00–14:00
-        const totalMinutes = (14 - 11) * 60; // 180
-        const elapsedMinutes = (hours - 11) * 60 + minutes + seconds / 60;
-        smoothOffset = middle * (elapsedMinutes / totalMinutes + 0.5); // centered gradually
+      if (totalSeconds <= morningEnd) {
+        // Morning: Left to Center
+        progress = totalSeconds / morningEnd;
+        smoothOffset = (maxOffset / 2) * progress; // 0% to 50% of max
+      } else if (totalSeconds <= almostNoonEnd) {
+        // Almost Noon: Center to Right
+        progress = (totalSeconds - morningEnd) / (almostNoonEnd - morningEnd);
+        smoothOffset = (maxOffset / 2) + (maxOffset / 4) * progress; // 50% to 75% of max
+      } else if (totalSeconds <= afternoonEnd) {
+        // After Noon: Right (stays at right)
+        smoothOffset = maxOffset;
       } else {
-        smoothOffset = max; // right
+        // Evening: Right (remains at right)
+        smoothOffset = maxOffset;
       }
 
+      // Get current greeting
+      const currentGreeting = getGreeting(hours, minutes, seconds);
+      setGreeting(currentGreeting);
       setDragOffset(smoothOffset);
-      setGreeting(getGreeting(hours));
 
       // Rounded edges logic
       const c = container.getBoundingClientRect();
@@ -100,7 +120,7 @@ const HeroCarousel: React.FC = () => {
       else greetingEl.classList.add("rounded-t-xl");
     };
 
-    const interval = setInterval(updatePosition, 1000);
+    const interval = setInterval(updatePosition, 100);
     updatePosition();
     return () => clearInterval(interval);
   }, []);
@@ -110,10 +130,10 @@ const HeroCarousel: React.FC = () => {
       <div ref={containerRef} className="relative w-full">
         <div
           ref={greetingRef}
-          className="absolute bg-black flex text-gray-400 px-1.5 py-2 w-max rounded-tr-xl select-none"
+          className="absolute bg-black flex text-gray-400 px-1.5 py-2 w-max rounded-tr-xl select-none transition-all duration-300 ease-out"
           style={{
             transform: `translateX(${dragOffset}px)`,
-            transition: "transform 1s linear",
+            left: 0,
           }}
         >
           <h4 className="text-sm indent-1.5 font-semibold">{greeting}</h4>
@@ -123,7 +143,7 @@ const HeroCarousel: React.FC = () => {
 
       {/* ---------------- Slides ---------------- */}
       <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden bg-black">
-        <div className="absolute inset-0 bg-linear-to-b from-black/70 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent pointer-events-none" />
 
         {slides.map((slide, index) => (
           <div

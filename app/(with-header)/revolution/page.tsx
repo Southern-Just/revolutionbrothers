@@ -8,27 +8,16 @@ import RecentTransactions from "@/components/RecentTransactions";
 import DepositWithdraw from "@/components/DepositWithdraw";
 import Transactions from "@/components/Transactions";
 import Footer from "@/components/Footer";
+import { getMyProfile, type MyProfile } from "@/lib/actions/user.systeme";
 
 type Tab = "transactions" | "deposit";
-
-interface Member {
-  id: string;
-  email: string;
-  name: string;
-}
 
 export default function Revolution() {
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-
-  // Static member for now (can be replaced later)
-  const member: Member = {
-    id: "1",
-    email: "revolution@example.com",
-    name: "Revolution Brothers",
-  };
+  const [userProfile, setUserProfile] = useState<MyProfile | null>(null);
 
   const totalBalance = 0;
 
@@ -52,6 +41,12 @@ export default function Revolution() {
     }, intervalMs);
 
     return () => clearInterval(interval);
+  }, []);
+
+  /* ---------------- FETCH USER PROFILE ---------------- */
+
+  useEffect(() => {
+    getMyProfile().then(setUserProfile);
   }, []);
 
   /* ---------------- LOADING SCREEN ---------------- */
@@ -147,7 +142,7 @@ export default function Revolution() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Welcome {member.name}
+          Welcome {userProfile ? (userProfile.username || userProfile.email) : 'Loading...'}
         </p>
       </section>
 
