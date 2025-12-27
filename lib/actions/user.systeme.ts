@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { db } from "@/lib/database/db";
 import { users, userProfiles } from "@/lib/database/schema";
 import { eq, sql } from "drizzle-orm";
@@ -62,7 +63,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
 
 export async function updateMyProfile(input: UpdateUserProfileInput) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  if (!currentUser) redirect("/");
 
   const { email, role, ...profileData } = input;
 
@@ -108,7 +109,7 @@ export async function getAllUsers(): Promise<{
   members: MemberDTO[];
 }> {
   const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  if (!currentUser) redirect("/");
 
   const rows = await db
     .select({

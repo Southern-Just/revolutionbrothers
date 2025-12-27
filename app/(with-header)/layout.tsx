@@ -1,13 +1,19 @@
-import Header from '@/components/Header'
-import React, { ReactNode } from 'react'
+import Header from '@/components/Header';
+import { ReactNode } from 'react';
+import { getCurrentUser } from '@/lib/actions/user.actions';
+import { redirect } from 'next/navigation';
 
-const layout = ({children}:{children:ReactNode}) => {
+const Layout = async ({ children }: { children: ReactNode }) => {
+  const user = await getCurrentUser();
+
+  if (!user) redirect('/');
+
   return (
     <div>
-      <Header/>
+      <Header />
       {children}
     </div>
-  )
-}
+  );
+};
 
-export default layout
+export default Layout;

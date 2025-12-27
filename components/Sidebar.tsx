@@ -1,4 +1,5 @@
 "use client";
+import { logout } from "@/lib/actions/user.actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -11,7 +12,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await logout();
     onClose();
     router.replace("/");
   };

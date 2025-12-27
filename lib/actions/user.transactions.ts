@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { db } from "@/lib/database/db";
 import { transactions, users, userProfiles } from "@/lib/database/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -42,9 +43,16 @@ export type UpdateTransactionInput = Partial<{
   status: "pending" | "verified" | "declined";
 }>;
 
+/* ---------------- AUTH GUARD ---------------- */
+function requireAuth(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  if (!user) redirect("/"); // replaces throwing UNAUTHORIZED
+  return user;
+}
+
+/* ---------------- CREATE ---------------- */
+
 export async function createTransaction(input: CreateTransactionInput) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  const currentUser = requireAuth(await getCurrentUser());
 
   const [tx] = await db
     .insert(transactions)
@@ -63,18 +71,17 @@ export async function createTransaction(input: CreateTransactionInput) {
   return tx;
 }
 
-/* ---------------- STK PUSH (AUTO CODE) ---------------- */
+/* ---------------- STK PUSH ---------------- */
 
 function generateTransactionCode() {
   return `MPESA-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 }
 
 export async function initiateDeposit(amount: number) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("UNAUTHORIZED");
-
+  const user = requireAuth(await getCurrentUser());
   const profile = await getMyProfile();
-  if (!profile?.phone) throw new Error("NO_PHONE");
+
+  if (!profile?.phone) redirect("/"); // replaces NO_PHONE
 
   const transactionCode = generateTransactionCode();
 
@@ -104,8 +111,7 @@ export async function initiateDeposit(amount: number) {
 /* ---------------- READ ---------------- */
 
 export async function getMyTransactions(): Promise<TransactionDTO[]> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  const currentUser = requireAuth(await getCurrentUser());
 
   return db
     .select({
@@ -129,8 +135,7 @@ export async function getMyTransactions(): Promise<TransactionDTO[]> {
 }
 
 export async function getAllTransactions(): Promise<TransactionDTO[]> {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  const currentUser = requireAuth(await getCurrentUser());
 
   return db
     .select({
@@ -152,13 +157,10 @@ export async function getAllTransactions(): Promise<TransactionDTO[]> {
     .orderBy(desc(transactions.occurredAt));
 }
 
-export async function getRecentTransactionsAllUsers(
-  limit = 6
-): Promise<TransactionDTO[]> {
+export async function getRecentTransactionsAllUsers(limit = 6): Promise<TransactionDTO[]> {
   noStore();
 
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  const currentUser = requireAuth(await getCurrentUser());
 
   return db
     .select({
@@ -183,12 +185,8 @@ export async function getRecentTransactionsAllUsers(
 
 /* ---------------- UPDATE / DELETE ---------------- */
 
-export async function updateTransaction(
-  transactionId: string,
-  input: UpdateTransactionInput
-) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+export async function updateTransaction(transactionId: string, input: UpdateTransactionInput) {
+  const currentUser = requireAuth(await getCurrentUser());
 
   const [updated] = await db
     .update(transactions)
@@ -201,13 +199,13 @@ export async function updateTransaction(
     )
     .returning();
 
-  if (!updated) throw new Error("NOT_FOUND");
+  if (!updated) redirect("/"); // replaces NOT_FOUND
+
   return updated;
 }
 
 export async function deleteTransaction(transactionId: string) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  const currentUser = requireAuth(await getCurrentUser());
 
   const deleted = await db
     .delete(transactions)
@@ -219,22 +217,22 @@ export async function deleteTransaction(transactionId: string) {
     )
     .returning();
 
-  if (!deleted.length) throw new Error("NOT_FOUND");
+  if (!deleted.length) redirect("/"); // replaces NOT_FOUND
   return { success: true };
 }
 
-
+/* ---------------- TOTAL BALANCE ---------------- */
 
 export async function getTotalBalance(): Promise<number> {
   const credits = await db
     .select({ sum: sql<number>`sum(${transactions.amount})` })
     .from(transactions)
-    .where(and(eq(transactions.type, 'credit'), inArray(transactions.status, ['verified', 'pending'])));
+    .where(and(eq(transactions.type, "credit"), inArray(transactions.status, ["verified", "pending"])));
 
   const debits = await db
     .select({ sum: sql<number>`sum(${transactions.amount})` })
     .from(transactions)
-    .where(and(eq(transactions.type, 'debit'), inArray(transactions.status, ['verified', 'pending'])));
+    .where(and(eq(transactions.type, "debit"), inArray(transactions.status, ["verified", "pending"])));
 
   const totalCredits = credits[0]?.sum || 0;
   const totalDebits = debits[0]?.sum || 0;
