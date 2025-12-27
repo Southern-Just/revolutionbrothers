@@ -139,7 +139,7 @@ export default function Hero() {
                     disabled={loading}
                     className="bg-black text-white font-semibold py-4 rounded-full text-lg"
                   >
-                    {loading ? "In a Sec. ..." : isSignUp ? "Join Us" : "Continue"}
+                    {loading ? "In a Sec. ..." : isSignUp ? "Système Join⁺" : "Con·ti·nue"}
                   </button>
                 </form>
               </div>
