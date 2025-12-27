@@ -157,8 +157,8 @@ const Finances = () => {
     <main className="min-h-screen space-y-3 px-4 py-4 text-foreground page-animate">
       <h1 className="indent-4 text-2xl font-bold">Mine Finances</h1>
 
-      <p className="text-center text-[12px] text-gray-500">
-        personalization done to perfection by revolution engine
+      <p className="text-start px-5 text-[12px] text-gray-500">
+        personalization courtesy of revolution engine
       </p>
 
       <div className="mx-auto w-[90%]">

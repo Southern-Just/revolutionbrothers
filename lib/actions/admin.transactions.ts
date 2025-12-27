@@ -1,111 +1,106 @@
 "use server";
 
 import { db } from "@/lib/database/db";
-import { transactions, users, userProfiles } from "@/lib/database/schema";
-import { eq, sql } from "drizzle-orm";
+import { transactions, users } from "@/lib/database/schema";
+import { eq } from "drizzle-orm";
 import { getCurrentUser } from "./user.actions";
-import { getMyProfile, getTreasurerPhone } from "./user.systeme";
 
-export type TransactionStatus = "pending" | "verified" | "declined";
-export type TransactionType = "credit" | "debit";
-
-export type BulkTransactionInput = {
-  userId: string;
-  month: string;
+type CSVTransactionRow = {
+  name?: string;
   amount: number;
-  type: TransactionType;
+  type: "credit" | "debit";
+  status: "pending" | "verified" | "declined";
   category: string;
   transactionCode: string;
   occurredAt: Date;
-  status: TransactionStatus;
+  month: string;
+  userId: string;
 };
 
-export async function getUserIdByName(name: string): Promise<string | null> {
-  const [user] = await db
-    .select({ id: users.id })
-    .from(users)
-    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .where(sql`${userProfiles.name} = ${name} OR ${users.email} = ${name}`)
-    .limit(1);
+function parseCSV(text: string): string[][] {
+  return text
+    .split("\n")
+    .map((row) => row.trim())
+    .filter(Boolean)
 
-  return user?.id ?? null;
+
+    
+    .map((row) =>
+      row
+        .split(",")
+        .map((cell) => cell.replace(/^"|"$/g, "").trim())
+    );
 }
 
-export async function parseAndBulkCreateTransactions(
-  csvText: string,
-  isPersonalView: boolean
-): Promise<{ success: boolean; message: string }> {
+export async function uploadTransactionsCSV(formData: FormData) {
   const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-
-  const treasurerPhone = await getTreasurerPhone();
-  const userProfile = await getMyProfile();
-  if (!userProfile?.phone || userProfile.phone !== treasurerPhone) {
-    throw new Error("ACCESS_DENIED: Only the treasurer can upload transactions");
+  if (!currentUser || currentUser.role !== "treasurer") {
+    throw new Error("UNAUTHORIZED");
   }
 
-  try {
-    const lines = csvText.split("\n").map((l) => l.trim()).filter(Boolean);
-    if (lines.length < 4) throw new Error("Invalid CSV format: Not enough lines");
-
-    const headers = lines[3].split(",").map((h) => h.trim());
-    const expectedHeaders = isPersonalView
-      ? ["Amount", "Type", "Status", "Date", "Transaction Code", "Category"]
-      : ["Name", "Amount", "Type", "Status", "Date", "Transaction Code", "Category"];
-
-    if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
-      throw new Error("CSV headers do not match expected format");
-    }
-
-    const transactionsToInsert: BulkTransactionInput[] = [];
-
-    for (let i = 4; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim());
-      if (values.length !== headers.length) continue;
-
-      let userId: string;
-      if (isPersonalView) {
-        userId = currentUser.id;
-      } else {
-        const name = values[0].replace(/"/g, "");
-        userId = (await getUserIdByName(name)) ?? "";
-        if (!userId) continue;
-      }
-
-      const amount = parseFloat(values[isPersonalView ? 0 : 1]);
-      const type = values[isPersonalView ? 1 : 2] as TransactionType;
-      const status = values[isPersonalView ? 2 : 3] as TransactionStatus;
-      const occurredAt = new Date(values[isPersonalView ? 3 : 4]);
-      const transactionCode = values[isPersonalView ? 4 : 5];
-      const category = values[isPersonalView ? 5 : 6];
-
-      if (isNaN(amount) || !["credit", "debit"].includes(type) || !["pending", "verified", "declined"].includes(status) || isNaN(occurredAt.getTime())) {
-        continue;
-      }
-
-      transactionsToInsert.push({
-        userId,
-        month: occurredAt.toISOString().slice(0, 7),
-        amount,
-        type,
-        category,
-        transactionCode,
-        occurredAt,
-        status,
-      });
-    }
-
-    if (transactionsToInsert.length === 0) {
-      return { success: false, message: "No valid transactions to upload." };
-    }
-
-    await db.insert(transactions).values(transactionsToInsert);
-
-    return { success: true, message: `Successfully uploaded ${transactionsToInsert.length} transactions.` };
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      return { success: false, message: `Upload failed: ${error.message}` };
-    }
-    return { success: false, message: "Upload failed: Unknown error" };
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    throw new Error("INVALID_FILE");
   }
+
+  const csvText = await file.text();
+  const rows = parseCSV(csvText);
+
+  const headerIndex = rows.findIndex((r) =>
+    r.includes("Amount") && r.includes("Transaction Code")
+  );
+
+  if (headerIndex === -1) {
+    throw new Error("INVALID_CSV_FORMAT");
+  }
+
+  const headers = rows[headerIndex];
+  const dataRows = rows.slice(headerIndex + 1);
+
+  const headerMap = Object.fromEntries(
+    headers.map((h, i) => [h.toLowerCase(), i])
+  );
+
+  const emails = dataRows
+    .map((r) => r[headerMap["name"]])
+    .filter(Boolean);
+
+  const usersList = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.email, users.email));
+
+  const userMap = new Map(
+    usersList.map((u) => [u.email, u.id])
+  );
+
+  const transactionsToInsert: CSVTransactionRow[] = dataRows.map((row) => {
+    const occurredAt = new Date(row[headerMap["date"]]);
+    const month = occurredAt.toISOString().slice(0, 7);
+
+    const email = row[headerMap["name"]];
+    const userId = userMap.get(email);
+
+    if (!userId) {
+      throw new Error(`USER_NOT_FOUND: ${email}`);
+    }
+
+    return {
+      userId,
+      amount: Number(row[headerMap["amount"]]),
+      type: row[headerMap["type"]] as "credit" | "debit",
+      status: row[headerMap["status"]] as
+        | "pending"
+        | "verified"
+        | "declined",
+      category: row[headerMap["category"]],
+      transactionCode: row[headerMap["transaction code"]],
+      occurredAt,
+      month,
+    };
+  });
+
+  await db.insert(transactions).values(transactionsToInsert);
+
+  return { success: true, count: transactionsToInsert.length };
 }

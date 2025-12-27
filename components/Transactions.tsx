@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import { getAllTransactions, getMyTransactions } from "@/lib/actions/user.transactions";
+// import { uploadTransactionsCSV } from "@/lib/actions/admin.transactions";
 import { toast } from "sonner";
 
 interface Transaction {
@@ -47,12 +48,14 @@ const CategoryBadge = ({ category }: { category: string }) => (
   </div>
 );
 
-export default function Transactions({ onClose, userId, userRole, treasurerPhone, userPhone }: TransactionsProps) {
+export default function Transactions({ onClose, userId, userRole }: TransactionsProps) {
   const [closing, setClosing] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
   const isPersonalView = Boolean(userId);
+  const isTreasurer = userRole === "treasurer";
 
   const loadTransactions = async (): Promise<void> => {
     setLoading(true);
@@ -99,15 +102,13 @@ export default function Transactions({ onClose, userId, userRole, treasurerPhone
       hour: "2-digit",
       minute: "2-digit",
     });
-    const title = "REVOLUTION BROTHERS";
-    const exportInfo = `Exported on: ${timestamp}`;
     const headers = isPersonalView
       ? ["Amount", "Type", "Status", "Date", "Transaction Code", "Category"]
       : ["Name", "Amount", "Type", "Status", "Date", "Transaction Code", "Category"];
 
     const csvRows: string[][] = [
-      [title],
-      [exportInfo],
+      ["REVOLUTION BROTHERS"],
+      [`Exported on: ${timestamp}`],
       [],
       headers,
       ...sortedTransactions.map((t) =>
@@ -117,12 +118,27 @@ export default function Transactions({ onClose, userId, userRole, treasurerPhone
       ),
     ];
 
-    const csvString = "data:text/csv;charset=utf-8," + csvRows.map((row) => row.join(",")).join("\n");
+    const csvString = "data:text/csv;charset=utf-8," + csvRows.map((r) => r.join(",")).join("\n");
     const link = document.createElement("a");
     link.href = encodeURI(csvString);
     link.download = "transactions.csv";
     link.click();
   };
+
+  // const handleUpload = (file: File) => {
+  //   const formData = new FormData();
+  //   formData.append("file", file);
+
+  //   startTransition(async () => {
+  //     try {
+  //       const res = await uploadTransactionsCSV(formData);
+  //       toast.success(`Uploaded ${res.count} transactions`);
+  //       await loadTransactions();
+  //     } catch {
+  //       toast.error("Upload failed");
+  //     }
+  //   });
+  // };
 
   if (loading) {
     return (
@@ -146,13 +162,13 @@ export default function Transactions({ onClose, userId, userRole, treasurerPhone
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {!isPersonalView && <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>}
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaction Code</th>
+              {!isPersonalView && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaction Code</th>
               <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
             </tr>
           </thead>
 
@@ -163,29 +179,31 @@ export default function Transactions({ onClose, userId, userRole, treasurerPhone
               const currentMonth = date.toLocaleString("en-GB", { month: "long", year: "numeric" });
               const showMonth =
                 i === 0 ||
-                currentMonth !== new Date(sortedTransactions[i - 1].occurredAt).toLocaleString("en-GB", { month: "long", year: "numeric" });
+                currentMonth !==
+                  new Date(sortedTransactions[i - 1].occurredAt).toLocaleString("en-GB", {
+                    month: "long",
+                    year: "numeric",
+                  });
 
               return (
                 <tr key={t.id} className={isDebit ? "bg-red-50" : "bg-green-50"}>
                   {!isPersonalView && (
-                    <td className="px-3 sm:px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{t.name}</div>
-                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{t.name}</td>
                   )}
-                  <td className="px-3 sm:px-6 py-4">
+                  <td className="px-6 py-4">
                     <span className={`text-sm font-semibold ${isDebit ? "text-red-600" : "text-green-600"}`}>
                       {isDebit ? "-" : "+"} KSh {formatAmount(t.amount)}
                     </span>
                   </td>
-                  <td className="px-3 sm:px-6 py-4">
+                  <td className="px-6 py-4">
                     <CategoryBadge category={t.status} />
                   </td>
-                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">{formatDateTime(date)}</td>
-                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">{t.transactionCode}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{formatDateTime(date)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{t.transactionCode}</td>
                   <td className="hidden md:table-cell px-6 py-4">
                     <CategoryBadge category={t.category} />
                   </td>
-                  <td className="px-3 sm:px-6 py-4 text-[9px] text-gray-400">{showMonth ? currentMonth : ""}</td>
+                  <td className="px-6 py-4 text-[9px] text-gray-400">{showMonth ? currentMonth : ""}</td>
                 </tr>
               );
             })}
@@ -194,10 +212,27 @@ export default function Transactions({ onClose, userId, userRole, treasurerPhone
       </div>
 
       <div className="flex justify-end mt-4 gap-2">
-        <button
-          onClick={exportCSV}
-          className="px-4 py-2 rounded-lg bg-brand text-white hover:bg-brand/80"
-        >
+        {/* {isTreasurer && !isPersonalView && (
+          <label className="px-4 py-2 rounded-lg bg-gray-700 text-white cursor-pointer">
+            {isPending ? "Uploading..." : "Upload CSV"}
+            <input
+              type="file"
+              accept=".csv"
+              hidden
+              onChange={(e) => {
+     }}
+            />
+          </label>
+        )} */}
+                <label className="px-4 py-2 rounded-lg bg-red-100 text-red-400 cursor-pointer">
+          <input
+            type="file"
+            accept=".csv"
+            hidden
+          />
+          Upload CSV
+        </label>
+        <button onClick={exportCSV} className="px-4 py-2 rounded-lg bg-brand text-white hover:bg-brand/80">
           Download CSV
         </button>
       </div>
