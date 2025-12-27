@@ -70,7 +70,6 @@ export const sessions = pgTable("sessions", {
 });
 
 /* ---------------- TRANSACTIONS ---------------- */
-
 export const transactions = pgTable("transactions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
@@ -82,6 +81,7 @@ export const transactions = pgTable("transactions", {
   status: transactionStatus("transaction_status").notNull().default("pending"),
   category: varchar("category", { length: 50 }).notNull(),
   transactionCode: varchar("transaction_code", { length: 100 }).notNull(),
+  checkoutRequestId: varchar("checkout_request_id", { length: 64 }), // ✅ optional
   occurredAt: timestamp("occurred_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

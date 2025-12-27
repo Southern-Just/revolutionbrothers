@@ -1,0 +1,1 @@
+ALTER TABLE "transactions" ADD COLUMN "checkout_request_id" varchar(64);

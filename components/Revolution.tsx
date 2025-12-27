@@ -14,6 +14,7 @@ import {
   getTreasurerPhone,
   type MyProfile,
 } from "@/lib/actions/user.systeme";
+import { getTotalBalance } from "@/lib/actions/user.transactions"; // Add this import
 
 type Tab = "transactions" | "deposit";
 
@@ -29,9 +30,20 @@ export default function Revolution() {
   const [progress, setProgress] = useState(0);
   const [userProfile, setUserProfile] = useState<MyProfile | null>(null);
   const [treasurerPhone, setTreasurerPhone] = useState<string | null>(null);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [accountDate, setAccountDate] = useState<string>("");
 
-  const totalBalance = 0;
+  useEffect(() => {
+    getTotalBalance().then((balance) => {
+      setTotalBalance(balance);
 
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+      setAccountDate(`${day}-${month}-${year}`);
+    });
+  }, []);
   // Loading animation for the page
   useEffect(() => {
     const duration = 2000;
@@ -53,10 +65,11 @@ export default function Revolution() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch profile and treasurer phone
+  // Fetch profile, treasurer phone, and total balance
   useEffect(() => {
     getMyProfile().then(setUserProfile);
     getTreasurerPhone().then(setTreasurerPhone);
+    getTotalBalance().then(setTotalBalance); // Add this
   }, []);
 
   if (loading) {
@@ -71,7 +84,7 @@ export default function Revolution() {
         />
         <div className="w-64 bg-gray-200 rounded-full overflow-hidden h-4">
           <div
-            className="h-4 bg-brand transition-all duration-75"
+            className="bg-gray-200 rounded-full overflow-hidden h-4"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -89,14 +102,14 @@ export default function Revolution() {
           <h1 className="font-bold text-2xl px-4 shadow-lg shadow-brand/40">
             Revolution Brother&apos;s Finances
           </h1>
-          <p className="text-end mr-4">Account as of 23-04-2025</p>
+          <p className="text-end mr-4">Account as of {accountDate}</p>
         </div>
 
         <div className="flex justify-center">
           <AccountCard
             fullName="Revolution Brothers"
             username="Revolution"
-            balance={totalBalance}
+            balance={totalBalance} // Use the fetched totalBalance
           />
         </div>
 
@@ -153,7 +166,7 @@ export default function Revolution() {
         </div>
 
         <p className="text-center tracking-wider text-brand text-sm mt-6">
-          akĩrí fĩo {userProfile?.username ? userProfile.username : "mwãna"}
+           {userProfile?.username ? userProfile.username : "mwãna"} akĩrí fĩo
         </p>
       </section>
 

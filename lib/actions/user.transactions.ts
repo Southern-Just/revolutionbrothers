@@ -2,10 +2,10 @@
 
 import { db } from "@/lib/database/db";
 import { transactions, users, userProfiles } from "@/lib/database/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getCurrentUser } from "./user.actions";
 import { getMyProfile } from "./user.systeme";
-import { stkPush } from "@/lib/daraja";
+import { stkPush } from "@/lib/utils/daraja";
 import { unstable_noStore as noStore } from "next/cache";
 
 /* ---------------- TYPES ---------------- */
@@ -13,9 +13,9 @@ import { unstable_noStore as noStore } from "next/cache";
 export type TransactionDTO = {
   id: string;
   userId: string;
+  name: string;
   month: string;
   amount: number;
-  name: string;
   type: "credit" | "debit";
   status: "pending" | "verified" | "declined";
   category: string;
@@ -52,41 +52,56 @@ export async function createTransaction(input: CreateTransactionInput) {
     .insert(transactions)
     .values({
       userId: currentUser.id,
-      ...input,
+      month: input.month,
+      amount: input.amount,
+      type: input.type,
+      category: input.category,
+      transactionCode: input.transactionCode,
       status: "pending",
+      occurredAt: input.occurredAt,
     })
     .returning();
 
   return tx;
 }
 
-/* ---------------- DARAJA ---------------- */
+/* ---------------- STK PUSH (AUTO CODE) ---------------- */
+
+function generateTransactionCode() {
+  return `MPESA-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+}
 
 export async function initiateDeposit(amount: number) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
+  const user = await getCurrentUser();
+  if (!user) throw new Error("UNAUTHORIZED");
 
   const profile = await getMyProfile();
   if (!profile?.phone) throw new Error("NO_PHONE");
 
-  const tx = await createTransaction({
-    month: new Date().toISOString().slice(0, 7),
-    amount: Math.floor(amount),
-    type: "credit",
-    category: "mpesa",
-    transactionCode: "PENDING",
-    occurredAt: new Date(),
-  });
+  const transactionCode = generateTransactionCode();
+
+  const [tx] = await db
+    .insert(transactions)
+    .values({
+      userId: user.id,
+      month: new Date().toISOString().slice(0, 7),
+      amount: Math.floor(amount),
+      type: "credit",
+      category: "mpesa",
+      transactionCode,
+      status: "pending",
+      occurredAt: new Date(),
+    })
+    .returning();
 
   await stkPush({
-    phone: profile.phone, // normalized inside stkPush
-    amount: Math.floor(amount),
-    reference: tx.id,
+    phone: profile.phone,
+    amount,
+    reference: transactionCode,
   });
 
-  return { success: true };
+  return tx;
 }
-
 
 /* ---------------- READ ---------------- */
 
@@ -138,7 +153,6 @@ export async function getAllTransactions(): Promise<TransactionDTO[]> {
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
     .orderBy(desc(transactions.occurredAt));
 }
-
 
 export async function getRecentTransactionsAllUsers(
   limit = 6
@@ -209,4 +223,23 @@ export async function deleteTransaction(transactionId: string) {
 
   if (!deleted.length) throw new Error("NOT_FOUND");
   return { success: true };
+}
+
+
+
+export async function getTotalBalance(): Promise<number> {
+  const credits = await db
+    .select({ sum: sql<number>`sum(${transactions.amount})` })
+    .from(transactions)
+    .where(and(eq(transactions.type, 'credit'), inArray(transactions.status, ['verified', 'pending'])));
+
+  const debits = await db
+    .select({ sum: sql<number>`sum(${transactions.amount})` })
+    .from(transactions)
+    .where(and(eq(transactions.type, 'debit'), inArray(transactions.status, ['verified', 'pending'])));
+
+  const totalCredits = credits[0]?.sum || 0;
+  const totalDebits = debits[0]?.sum || 0;
+
+  return totalCredits - totalDebits;
 }

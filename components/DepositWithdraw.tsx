@@ -58,7 +58,7 @@ export default function DepositWithdraw({
 
     startTransition(async () => {
       try {
-        /* ---------------- MANUAL DEPOSIT ---------------- */
+        // -------- MANUAL M-PESA DEPOSIT --------
         if (mode === "deposit" && alreadyDeposited) {
           await createTransaction({
             month: new Date().toISOString().slice(0, 7),
@@ -72,13 +72,12 @@ export default function DepositWithdraw({
           toast.success("Deposit submitted for verification");
         }
 
-        /* ---------------- STK PUSH ---------------- */
+        // -------- STK PUSH --------
         if (mode === "deposit" && !alreadyDeposited) {
           await initiateDeposit(parsedAmount);
           toast.success("M-Pesa prompt sent to your phone");
         }
 
-        /* ---------------- WITHDRAW (PLACEHOLDER) ---------------- */
         if (mode === "withdraw" && isTreasurer) {
           toast.success("Withdrawal processed");
         }
@@ -86,7 +85,7 @@ export default function DepositWithdraw({
         setAmount("");
         setMpesaCode("");
         setAlreadyDeposited(false);
-      } catch (err: unknown) {
+      } catch (err) {
         toast.error(
           isError(err) ? err.message : "Something went wrong. Try again."
         );
@@ -160,7 +159,7 @@ export default function DepositWithdraw({
           {mode === "deposit" && (
             <div className="space-y-2">
               <div className="flex justify-between">
-                <p className="text-sm ml-6">Paybill: 0741420123</p>
+                <p className="text-sm ml-2">a/c phone: 0741420123</p>
                 <button
                   type="button"
                   onClick={() => setAlreadyDeposited((v) => !v)}

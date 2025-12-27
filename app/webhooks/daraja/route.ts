@@ -1,3 +1,4 @@
+// Handles all Safaricom Daraja callbacks (STK Push + B2C)
 import { NextResponse } from "next/server";
 import { db } from "@/lib/database/db";
 import { transactions } from "@/lib/database/schema";
@@ -5,150 +6,113 @@ import { eq, and } from "drizzle-orm";
 
 /* ---------------- TYPES ---------------- */
 
-type MpesaCallbackItem =
+type CallbackItem =
   | { Name: "Amount"; Value: number }
   | { Name: "MpesaReceiptNumber"; Value: string }
   | { Name: "TransactionDate"; Value: number }
   | { Name: "PhoneNumber"; Value: number }
   | { Name: string; Value?: never };
 
-type MpesaCallbackMetadata = {
-  Item: MpesaCallbackItem[];
+type CallbackMetadata = {
+  Item: CallbackItem[];
 };
 
-type MpesaStkCallback = {
-  MerchantRequestID: string;
+type StkCallback = {
   CheckoutRequestID: string;
   ResultCode: number;
   ResultDesc: string;
-  CallbackMetadata?: MpesaCallbackMetadata;
+  CallbackMetadata?: CallbackMetadata;
 };
 
-type MpesaWebhookBody = {
-  Body?: {
-    stkCallback?: MpesaStkCallback;
+type B2CResult = {
+  Result: {
+    ConversationID: string;
+    ResultCode: number;
+    ResultDesc: string;
   };
 };
 
-/* ---------------- TYPE GUARDS ---------------- */
+type DarajaWebhook = { Body: { stkCallback: StkCallback } } | B2CResult;
 
-function isMpesaWebhookBody(value: unknown): value is MpesaWebhookBody {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "Body" in value
-  );
-}
+/* ---------------- HELPERS ---------------- */
 
-function extractMetadata(
-  metadata?: MpesaCallbackMetadata
-): {
-  amount?: number;
+function extract(metadata?: CallbackMetadata): {
   receipt?: string;
-  transactionDate?: Date;
-  phone?: string;
+  occurredAt?: Date;
 } {
   if (!metadata) return {};
 
-  const result: {
-    amount?: number;
-    receipt?: string;
-    transactionDate?: Date;
-    phone?: string;
-  } = {};
+  let receipt: string | undefined;
+  let occurredAt: Date | undefined;
 
   for (const item of metadata.Item) {
-    if (!("Value" in item)) continue;
+    if (item.Value === undefined) continue;
 
-    switch (item.Name) {
-      case "Amount": {
-        if (typeof item.Value === "number") {
-          result.amount = item.Value;
-        }
-        break;
-      }
+    if (item.Name === "MpesaReceiptNumber" && typeof item.Value === "string") {
+      receipt = item.Value;
+    }
 
-      case "MpesaReceiptNumber": {
-        if (typeof item.Value === "string") {
-          result.receipt = item.Value;
-        }
-        break;
-      }
-
-      case "TransactionDate": {
-        if (typeof item.Value === "number") {
-          result.transactionDate = new Date(
-            item.Value
-              .toString()
-              .replace(
-                /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
-                "$1-$2-$3T$4:$5:$6"
-              )
-          );
-        }
-        break;
-      }
-
-      case "PhoneNumber": {
-        if (typeof item.Value === "number") {
-          result.phone = item.Value.toString();
-        }
-        break;
-      }
+    if (item.Name === "TransactionDate" && typeof item.Value === "number") {
+      occurredAt = new Date(
+        item.Value.toString().replace(
+          /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
+          "$1-$2-$3T$4:$5:$6"
+        )
+      );
     }
   }
 
-  return result;
+  return { receipt, occurredAt };
 }
 
-
-/* ---------------- WEBHOOK ---------------- */
+/* ---------------- ROUTE ---------------- */
 
 export async function POST(req: Request) {
-  /* -------- Secret validation -------- */
   const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
 
-  if (secret !== process.env.MPESA_WEBHOOK_SECRET) {
-    return NextResponse.json(
-      { ResultCode: 1, ResultDesc: "Unauthorized" },
-      { status: 401 }
-    );
+  if (searchParams.get("secret") !== process.env.MPESA_WEBHOOK_SECRET) {
+    return NextResponse.json({ ResultCode: 1 }, { status: 401 });
   }
 
-  /* -------- Parse body safely -------- */
-  let payload: unknown;
+  let body: DarajaWebhook;
 
   try {
-    payload = await req.json();
+    body = (await req.json()) as DarajaWebhook;
   } catch {
     return NextResponse.json({ ResultCode: 0 });
   }
 
-  if (!isMpesaWebhookBody(payload)) {
-    return NextResponse.json({ ResultCode: 0 });
-  }
+  /* ---------- STK PUSH ---------- */
+  if ("Body" in body && body.Body.stkCallback) {
+    const cb = body.Body.stkCallback;
 
-  const callback = payload.Body?.stkCallback;
+    if (cb.ResultCode !== 0) {
+      await db
+        .update(transactions)
+        .set({ status: "declined" })
+        .where(
+          and(
+            eq(transactions.checkoutRequestId, cb.CheckoutRequestID),
+            eq(transactions.status, "pending")
+          )
+        );
 
-  if (!callback) {
-    return NextResponse.json({ ResultCode: 0 });
-  }
+      return NextResponse.json({ ResultCode: 0 });
+    }
 
-  const {
-    ResultCode,
-    CheckoutRequestID,
-    CallbackMetadata,
-  } = callback;
+    const { receipt, occurredAt } = extract(cb.CallbackMetadata);
+    if (!receipt || !occurredAt) return NextResponse.json({ ResultCode: 0 });
 
-  /* -------- Handle failure -------- */
-  if (ResultCode !== 0) {
     await db
       .update(transactions)
-      .set({ status: "declined" })
+      .set({
+        status: "verified",
+        transactionCode: receipt,
+        occurredAt,
+      })
       .where(
         and(
-          eq(transactions.id, CheckoutRequestID),
+          eq(transactions.checkoutRequestId, cb.CheckoutRequestID),
           eq(transactions.status, "pending")
         )
       );
@@ -156,31 +120,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ ResultCode: 0 });
   }
 
-  /* -------- Handle success -------- */
-  const { receipt, transactionDate } =
-    extractMetadata(CallbackMetadata);
+  /* ---------- B2C ---------- */
+  if ("Result" in body) {
+    const status = body.Result.ResultCode === 0 ? "verified" : "declined";
 
-  if (!receipt || !transactionDate) {
+    await db
+      .update(transactions)
+      .set({ status })
+      .where(
+        and(
+          eq(transactions.checkoutRequestId, body.Result.ConversationID),
+          eq(transactions.status, "pending")
+        )
+      );
+
     return NextResponse.json({ ResultCode: 0 });
   }
 
-  // Idempotent update
-  await db
-    .update(transactions)
-    .set({
-      status: "verified",
-      transactionCode: receipt,
-      occurredAt: transactionDate,
-    })
-    .where(
-      and(
-        eq(transactions.id, CheckoutRequestID),
-        eq(transactions.status, "pending")
-      )
-    );
-
-  return NextResponse.json({
-    ResultCode: 0,
-    ResultDesc: "Accepted",
-  });
+  return NextResponse.json({ ResultCode: 0 });
 }

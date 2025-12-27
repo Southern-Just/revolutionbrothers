@@ -10,6 +10,7 @@ import Transactions from "./Transactions";
 
 import { getMyProfile } from "@/lib/actions/user.systeme";
 import { getMyTransactions } from "@/lib/actions/user.transactions";
+import { getCurrentUser } from "@/lib/actions/user.actions"; 
 
 const Finances = () => {
   const [showTransactions, setShowTransactions] = useState(false);
@@ -20,6 +21,9 @@ const Finances = () => {
   const [monthlyContributions, setMonthlyContributions] = useState<
     { month: string; amount: number }[]
   >([]);
+  const [userId, setUserId] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>(""); 
+  const [userPhone, setUserPhone] = useState<string>("");
 
   const router = useRouter();
 
@@ -27,20 +31,25 @@ const Finances = () => {
     router.push("/revolution?tab=deposit");
   };
 
-  /* ---------------- LOAD DATA ---------------- */
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
 
       try {
-        const profile = await getMyProfile();
-        const transactions = await getMyTransactions();
+        const [currentUser, profile, transactions] = await Promise.all([
+          getCurrentUser(),
+          getMyProfile(),
+          getMyTransactions()
+        ]);
 
-        if (!profile) return;
+        if (!profile || !currentUser) return;
 
         setUserName(profile.name);
         setUserEmail(profile.email);
+        setUserId(currentUser.id); 
+        setUserRole(profile.role);
+        setUserPhone(profile.phone || ""); 
 
         const credits = transactions.filter(
           (t) => t.type === "credit"
@@ -70,7 +79,6 @@ const Finances = () => {
     loadData();
   }, []);
 
-  /* ---------------- LOADING ---------------- */
 
   if (loading) {
     return (
@@ -87,7 +95,7 @@ const Finances = () => {
     );
   }
 
-  /* ---------------- EMPTY STATE ---------------- */
+    // empty state
 
   if (!monthlyContributions.length) {
     return (
@@ -118,7 +126,7 @@ const Finances = () => {
     );
   }
 
-  /* ---------------- COMPUTED VALUES ---------------- */
+// u can move the computations elsewhere
 
   const totalSavings = monthlyContributions.reduce(
     (sum, c) => sum + c.amount,
@@ -144,8 +152,6 @@ const Finances = () => {
   const username =
     userName.trim().split(" ")[0] ||
     userEmail.split("@")[0];
-
-  /* ---------------- RENDER ---------------- */
 
   return (
     <main className="min-h-screen space-y-3 px-4 py-4 text-foreground page-animate">
@@ -214,7 +220,12 @@ const Finances = () => {
         </div>
 
         {showTransactions && (
-          <Transactions onClose={() => setShowTransactions(false)} />
+          <Transactions 
+            onClose={() => setShowTransactions(false)} 
+            userId={userId}
+            userRole={userRole} 
+            userPhone={userPhone} 
+          />
         )}
       </section>
 
