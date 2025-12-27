@@ -7,42 +7,8 @@ import { getCurrentUser } from "./user.actions";
 import { getMyProfile } from "./user.systeme";
 import { stkPush } from "@/lib/utils/daraja";
 import { unstable_noStore as noStore } from "next/cache";
+import { CreateTransactionInput, TransactionDTO, UpdateTransactionInput } from "@/types";
 
-/* ---------------- TYPES ---------------- */
-
-export type TransactionDTO = {
-  id: string;
-  userId: string;
-  name: string;
-  month: string;
-  amount: number;
-  type: "credit" | "debit";
-  status: "pending" | "verified" | "declined";
-  category: string;
-  transactionCode: string;
-  occurredAt: Date;
-  createdAt: Date;
-};
-
-export type CreateTransactionInput = {
-  month: string;
-  amount: number;
-  type: "credit" | "debit";
-  category: string;
-  transactionCode: string;
-  occurredAt: Date;
-};
-
-export type UpdateTransactionInput = Partial<{
-  month: string;
-  amount: number;
-  type: "credit" | "debit";
-  category: string;
-  occurredAt: Date;
-  status: "pending" | "verified" | "declined";
-}>;
-
-/* ---------------- CORE ---------------- */
 
 export async function createTransaction(input: CreateTransactionInput) {
   const currentUser = await getCurrentUser();

@@ -5,17 +5,8 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/database/db";
 import { users, sessions, userProfiles } from "@/lib/database/schema";
 import { eq, gt, and } from "drizzle-orm";
+import { SignInInput, SignUpInput } from "@/types";
 
-export type SignInInput = {
-  email: string;
-  password: string;
-};
-
-export type SignUpInput = {
-  email: string;
-  password: string;
-  pin: string;
-};
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 

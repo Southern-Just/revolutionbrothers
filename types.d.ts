@@ -1,137 +1,84 @@
-export type UserRole = "chairperson" | "secretary" | "treasurer" | "member";
-export type TransactionStatus = "verified" | "pending" | "declined";
-export type TransactionType = "credit" | "debit";
+/* ----------------user.actions ---------------- */
 
-export interface userAuth {
-  id: string;
+export type SignInInput = {
   email: string;
-  passwordHash: string;
+  password: string;
+};
+
+export type SignUpInput = {
+  email: string;
+  password: string;
   pin: string;
-  role: UserRole;
-  isVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+};
+/* ---------------- user.transactions. TYPES ---------------- */
 
-export interface UserProfileRow {
-  id: string;
-  userId: string;
-  name: string;
-  username: string;
-  nationalId: string;
-  phone: string | null;
-  profileImage: string | null;
-}
-
-export interface SessionRow {
-  id: string;
-  userId: string;
-  sessionToken: string;
-  expiresAt: Date;
-  createdAt: Date;
-}
-
-export interface TransactionRow {
-  id: string;
-  userId: string;
-  name: string;
-  month: string;
-  amount: string;
-  type: TransactionType;
-  status: TransactionStatus;
-  category: string;
-  transactionCode: string;
-  occurredAt: Date;
-  createdAt: Date;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  role: UserRole;
-  isVerified: boolean;
-  createdAt: string;
-}
-
-export interface UserProfile {
-  id: string;
-  userId: string;
-  name: string;
-  username: string;
-  nationalId: string;
-  phone?: string;
-  profileImage?: string;
-}
-
-export interface Session {
-  id: string;
-  userId: string;
-  expiresAt: string;
-}
-
-export interface Transaction {
+export type TransactionDTO = {
   id: string;
   userId: string;
   name: string;
   month: string;
   amount: number;
-  type: TransactionType;
-  status: TransactionStatus;
+  type: "credit" | "debit";
+  status: "pending" | "verified" | "declined";
   category: string;
   transactionCode: string;
-  occurredAt: string;
-  createdAt?: string;
-}
+  occurredAt: Date;
+  createdAt: Date;
+};
 
-export interface Member {
-  id: string;
+export type CreateTransactionInput = {
+  month: string;
+  amount: number;
+  type: "credit" | "debit";
+  category: string;
+  transactionCode: string;
+  occurredAt: Date;
+};
+
+export type UpdateTransactionInput = Partial<{
+  month: string;
+  amount: number;
+  type: "credit" | "debit";
+  category: string;
+  occurredAt: Date;
+  status: "pending" | "verified" | "declined";
+}>;
+
+/* ---------------- user.systeme. TYPES ---------------- */
+
+export type MemberDTO = {
+  userId: string;
+  name: string;
+  role: string;
+  username: string | null;
+  phone: string | null;
+  profileImage: string | null;
+};
+
+export type MyProfile = {
   email: string;
-  role: UserRole;
-  createdAt: string;
-}
-
-export interface MemberWithProfile extends Member {
   name: string;
   username: string;
+  phone: string;
   nationalId: string;
-  phone?: string;
-  profileImage?: string;
-}
+  profileImage?: string | null;
+  role: "chairperson" | "secretary" | "treasurer" | "member";
+};
 
-export interface MemberWithTransactions extends MemberWithProfile {
-  contributions: Transaction[];
-}
+export type UpdateUserProfileInput = Partial<MyProfile>;
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: UserRole;
-}
 
-export interface SignInInput {
-  email: string;
-  password: string;
-}
+// admin transaction
+export type TransactionStatus = "pending" | "verified" | "declined";
+export type TransactionType = "credit" | "debit";
 
-export interface SignUpInput {
-  email: string;
-  password: string;
-  pin: string;
-}
-
-export interface UpdateMemberInput {
-  role?: UserRole;
-  name?: string;
-  username?: string;
-  phone?: string;
-  profileImage?: string;
-}
-
-export interface UpdateTransactionInput {
-  name?: string;
-  amount?: number;
-  type?: TransactionType;
-  status?: TransactionStatus;
-  category?: string;
-  occurredAt?: string;
-}
+export type BulkTransactionInput = {
+  userId: string;
+  month: string;
+  amount: number;
+  type: TransactionType;
+  category: string;
+  transactionCode: string;
+  occurredAt: Date;
+  status: TransactionStatus;
+};
