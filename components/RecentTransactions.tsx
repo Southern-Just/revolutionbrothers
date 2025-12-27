@@ -116,8 +116,8 @@ export default function RecentTransactions() {
             <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-6">
               Status
             </th>
-            <th className="px-3 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-6">
-              Date | DD-MM-YY
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 sm:px-6">
+              Date | DD-MM-YY TT
             </th>
             <th className="hidden px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 md:table-cell">
               Transaction Code
