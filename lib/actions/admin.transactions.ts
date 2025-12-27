@@ -5,9 +5,20 @@ import { transactions, users, userProfiles } from "@/lib/database/schema";
 import { eq, sql } from "drizzle-orm";
 import { getCurrentUser } from "./user.actions";
 import { getMyProfile, getTreasurerPhone } from "./user.systeme";
-import { BulkTransactionInput, TransactionStatus, TransactionType } from "@/types";
 
+export type TransactionStatus = "pending" | "verified" | "declined";
+export type TransactionType = "credit" | "debit";
 
+export type BulkTransactionInput = {
+  userId: string;
+  month: string;
+  amount: number;
+  type: TransactionType;
+  category: string;
+  transactionCode: string;
+  occurredAt: Date;
+  status: TransactionStatus;
+};
 
 export async function getUserIdByName(name: string): Promise<string | null> {
   const [user] = await db

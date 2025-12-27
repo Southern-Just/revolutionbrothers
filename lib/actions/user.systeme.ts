@@ -4,9 +4,29 @@ import { db } from "@/lib/database/db";
 import { users, userProfiles } from "@/lib/database/schema";
 import { eq, sql } from "drizzle-orm";
 import { getCurrentUser } from "./user.actions";
-import { MyProfile, UpdateUserProfileInput, MemberDTO } from "@/types";
 
+/* ---------------- TYPES ---------------- */
 
+export type MemberDTO = {
+  userId: string;
+  name: string;
+  role: string;
+  username: string | null;
+  phone: string | null;
+  profileImage: string | null;
+};
+
+export type MyProfile = {
+  email: string;
+  name: string;
+  username: string;
+  phone: string;
+  nationalId: string;
+  profileImage?: string | null;
+  role: "chairperson" | "secretary" | "treasurer" | "member";
+};
+
+export type UpdateUserProfileInput = Partial<MyProfile>;
 
 /* ---------------- PROFILE ---------------- */
 
