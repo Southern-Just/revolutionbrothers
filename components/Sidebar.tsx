@@ -1,7 +1,8 @@
 "use client";
-import { logout } from "@/lib/actions/user.actions";
+import { getTermsPdf, logout } from "@/lib/actions/user.actions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { downloadFile } from "@/lib/utils/downloadFile";
 
 interface SidebarProps {
   open: boolean;
@@ -72,12 +73,19 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             Logout
           </button>
 
-          <footer className="absolute bottom-10 w-full px-2 space-y-6">
+          <footer className="absolute bottom-10 w-full p-4 space-y-6">
             <Link href="/account" onClick={onClose}>
-              <p className="text-lg hover:opacity-70 transition">
+              <p
+                onClick={async () => {
+                  const { file, filename } = await getTermsPdf();
+                  downloadFile(file, filename);
+                }}
+                className="text-lg cursor-pointer hover:opacity-70 transition"
+              >
                 Download Terms
               </p>
             </Link>
+
             <p className="text-gray-400 text-sm">
               &copy; 2025 Revolution Brothers. All rights reserved.
             </p>

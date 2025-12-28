@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/database/db";
 import { users, sessions, userProfiles } from "@/lib/database/schema";
 import { eq, gt, and } from "drizzle-orm";
+import fs from "fs/promises";
+import path from "path";
 
 export type SignInInput = {
   email: string;
@@ -136,3 +138,26 @@ export async function getCurrentUser() {
 
   return result?.user ?? null;
 }
+
+
+export const getTermsPdf = async (): Promise<{
+  file: ArrayBuffer;
+  filename: string;
+}> => {
+  const filePath = path.join(
+    process.cwd(),
+    "private",
+    "terms",
+    "Revolution-Brothers-Constitution.pdf"
+  );
+
+  const buffer = await fs.readFile(filePath);
+
+  return {
+    file: buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength
+    ),
+    filename: "Revolution-Brothers-Constitution.pdf",
+  };
+};
