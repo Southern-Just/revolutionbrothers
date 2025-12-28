@@ -105,7 +105,7 @@ export default function Revolution() {
           <p className="text-end mr-4">Account as of {accountDate}</p>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center px-0">
           <AccountCard
             fullName="Revolution Brothers"
             username="Revolution"

@@ -29,7 +29,7 @@ const AccountCard = ({
 
   return (
     <div className="flex flex-col">
-      <Link href={linkHref} className="bank-card">
+      <Link href={linkHref} className="bank-card w-full sm:w-98 md:w-96 lg:w-md xl:w-lg">
         <div className="bank-card_content">
           <div>
             <h1 className="text-[16px] font-semibold text-white">
