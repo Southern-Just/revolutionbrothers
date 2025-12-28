@@ -1,0 +1,1 @@
+ALTER TABLE "transactions" ADD COLUMN "mpesa_receipt" varchar(20);
