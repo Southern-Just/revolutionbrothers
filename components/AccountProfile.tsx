@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Footer from "./Footer";
 import { toast } from "sonner";
+import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 
 import {
   getMyProfile,
@@ -32,6 +34,12 @@ export default function AccountProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [crop, setCrop] = useState<Crop>({ unit: "%", width: 50, aspect: 1 });
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+  const [imageSrc, setImageSrc] = useState<string>("");
+
   const [creditLimit, setCreditLimit] = useState(10000);
 
   const totalSavings = 10000;
@@ -45,8 +53,6 @@ export default function AccountProfile() {
   const refreshCreditLimit = () => {
     setCreditLimit(Math.floor(Math.random() * 20000) + 5000);
   };
-
-  /* ---------------- LOAD PROFILE ---------------- */
 
   useEffect(() => {
     let mounted = true;
@@ -68,8 +74,6 @@ export default function AccountProfile() {
       mounted = false;
     };
   }, []);
-
-  /* ---------------- HANDLERS ---------------- */
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -103,28 +107,87 @@ export default function AccountProfile() {
     }
   };
 
-  const handleImageChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) {
       toast.error("Invalid file type");
       return;
     }
 
-    try {
-      const url = await uploadProfileImage(file);
-
-      await updateMyProfile({ profileImage: url });
-
-      setPersonal((p) => ({ ...p, profileImage: url }));
-      toast.success("Profile image updated");
-    } catch {
-      toast.error("Failed to upload image");
-    }
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(reader.result as string);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
   };
 
-  /* ---------------- RENDER ---------------- */
+  const getCroppedImg = async (
+    image: HTMLImageElement,
+    crop: PixelCrop,
+    fileName: string
+  ): Promise<Blob | null> => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    canvas.width = 80;
+    canvas.height = 80;
+
+    ctx.drawImage(
+      image,
+      crop.x * scaleX,
+      crop.y * scaleY,
+      crop.width * scaleX,
+      crop.height * scaleY,
+      0,
+      0,
+      80,
+      80
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.9);
+    });
+  };
+
+  const handleCropConfirm = async () => {
+    if (!completedCrop || !selectedFile || !imageSrc) {
+      toast.error("Please select a crop area.");
+      return;
+    }
+
+    const image = new window.Image();
+    image.src = imageSrc;
+    image.onload = async () => {
+      const croppedBlob = await getCroppedImg(image, completedCrop, selectedFile.name);
+      if (!croppedBlob) {
+        toast.error("Failed to process image.");
+        return;
+      }
+
+      const croppedFile = new File([croppedBlob], selectedFile.name, { type: "image/jpeg" });
+
+      try {
+        const url = await uploadProfileImage(croppedFile);
+
+        await updateMyProfile({ profileImage: url });
+
+        setPersonal((p) => ({ ...p, profileImage: url }));
+        toast.success("Profile image updated");
+        setCropModalOpen(false);
+        setSelectedFile(null);
+        setImageSrc("");
+        setCompletedCrop(null);
+      } catch {
+        toast.error("Failed to upload image");
+      }
+    };
+  };
 
   const displayName =
     personal.username ||
@@ -145,7 +208,6 @@ export default function AccountProfile() {
         {displayName} <span className="text-foreground">Details</span>
       </h2>
 
-      {/* PROFILE HEADER */}
       <div className="mb-4 flex justify-center">
         <div className="flex w-[94%] max-w-md items-center justify-between gap-8 rounded-2xl border border-gray-200 p-4 shadow-sm">
           <label className="relative cursor-pointer">
@@ -187,7 +249,46 @@ export default function AccountProfile() {
         </div>
       </div>
 
-      {/* DETAILS */}
+      {cropModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Crop Your Image</h3>
+            <ReactCrop
+              crop={crop}
+              onChange={setCrop}
+              onComplete={setCompletedCrop}
+              aspect={1}
+              onLoad={(img) => {
+                const size = Math.min(img.width, img.height);
+                setCrop({
+                  unit: "px",
+                  width: size,
+                  height: size,
+                  x: (img.width - size) / 2,
+                  y: (img.height - size) / 2,
+                });
+              }}
+            >
+              <img src={imageSrc} alt="Crop preview" className="max-w-full" />
+            </ReactCrop>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setCropModalOpen(false)}
+                className="px-4 py-2 bg-gray-300 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCropConfirm}
+                className="px-4 py-2 bg-brand text-white rounded"
+              >
+                Confirm & Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="px-5 py-4 ">
         {fields.map(({ label, key }) => (
           <div key={key} className="mb-4 flex justify-between gap-4">
@@ -221,7 +322,6 @@ export default function AccountProfile() {
         </div>
       </section>
 
-      {/* FINANCIAL SUMMARY */}
       <section className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="mb-3 flex justify-between">
           <span>Credit Limit</span>

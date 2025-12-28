@@ -158,7 +158,7 @@ const Finances = () => {
       <h1 className="indent-4 text-2xl font-bold">Mine Finances</h1>
 
       <p className="text-start px-5 text-[12px] text-gray-500">
-        personalization courtesy of revolution engine
+        personalization powered by revolution engine
       </p>
 
       <div className="mx-auto w-[90%]">
