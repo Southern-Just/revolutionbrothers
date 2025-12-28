@@ -14,6 +14,7 @@ export default function Hero() {
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAllowed, setIsAllowed] = useState(false);
 
   const authMode = searchParams.get("auth");
   const isSignUp = authMode === "signup";
@@ -22,6 +23,25 @@ export default function Hero() {
   useEffect(() => {
     if (!showAuth && authMode) router.replace("/", { scroll: false });
   }, [authMode, router, showAuth]);
+
+  useEffect(() => {
+    const checkAccess = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      // Define "mobile portrait": width <= 768px and height > width (portrait orientation)
+      // Adjust 768px if you want stricter (e.g., 480px) or looser limits
+      setIsAllowed(width <= 768 && height > width);
+    };
+
+    // Check on mount
+    checkAccess();
+
+    // Re-check on window resize (e.g., rotating device or resizing browser)
+    window.addEventListener('resize', checkAccess);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkAccess);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,6 +85,27 @@ export default function Hero() {
   const handleGetStarted = () => router.push("/?auth=signin", { scroll: false });
   const handleToggleSignUp = () =>
     router.push(`/?auth=${isSignUp ? "signin" : "signup"}`, { scroll: false });
+
+  if (!isAllowed) {
+    return (
+      <div className="flex flex-col min-h-screen w-full p-20">
+        <div className="flex flex-col justify-center items-center align-middle text-center space-y-6 flex-grow">
+          <p className="text-brand text-4xl"> Sorry G 😢</p>
+          <div className="text-brand grid grid-cols-[max-content_auto] gap-1">
+            <span>Either you are on:</span>
+            <div className="text-xs flex flex-col text-gray-500 px-2 py-1 space-y-3 text-start border border-brand">
+              <span>A device larger than a mobile screen</span>
+              <span className="ml-10">or</span>
+              <span>your device is in landscape mode</span>
+            </div>
+          </div>
+          <p className="text-xs ml-16">Please use a <span className="text-xl text-red-200">*</span>mobile screen and portrait mode only</p>
+                    <p className="text-[9px] ml-42"> Thanks for understanding, Tutashugulikia</p>
+
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen">
