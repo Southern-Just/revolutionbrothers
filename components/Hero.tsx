@@ -89,8 +89,8 @@ export default function Hero() {
   if (!isAllowed) {
     return (
       <div className="flex flex-col min-h-screen w-full p-20">
-        <div className="flex flex-col justify-center items-center align-middle text-center space-y-6 flex-grow">
-          <p className="text-brand text-4xl"> Sorry G 😢</p>
+        <div className="flex flex-col justify-center items-center align-middle text-center space-y-6 grow">
+          <p className="text-gray-500 text-3xl font-semibold"> Sorry G 😢</p>
           <div className="text-brand grid grid-cols-[max-content_auto] gap-1">
             <span>Either you are on:</span>
             <div className="text-xs flex flex-col text-gray-500 px-2 py-1 space-y-3 text-start border border-brand">
@@ -100,7 +100,7 @@ export default function Hero() {
             </div>
           </div>
           <p className="text-xs ml-16">Please use a <span className="text-xl text-red-200">*</span>mobile screen and portrait mode only</p>
-                    <p className="text-[9px] ml-42"> Thanks for understanding, Tutashugulikia</p>
+                    <p className="text-[9px] ml-42 text-brand"> Thanks for understanding, Tutashugulikia</p>
 
         </div>
       </div>
