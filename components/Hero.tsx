@@ -15,6 +15,8 @@ export default function Hero() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAllowed, setIsAllowed] = useState(false);
+  const [showBlock, setShowBlock] = useState(false);
+  const [animatingOut, setAnimatingOut] = useState(false);
 
   const authMode = searchParams.get("auth");
   const isSignUp = authMode === "signup";
@@ -42,6 +44,21 @@ export default function Hero() {
     // Cleanup
     return () => window.removeEventListener('resize', checkAccess);
   }, []);
+
+  useEffect(() => {
+    if (isAllowed && showBlock) {
+      // Start exit animation
+      setAnimatingOut(true);
+      setTimeout(() => {
+        setShowBlock(false);
+        setAnimatingOut(false);
+      }, 500); // Match the transition duration
+    } else if (!isAllowed) {
+      // Show block immediately for entrance
+      setShowBlock(true);
+      setAnimatingOut(false);
+    }
+  }, [isAllowed, showBlock]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,108 +103,116 @@ export default function Hero() {
   const handleToggleSignUp = () =>
     router.push(`/?auth=${isSignUp ? "signin" : "signup"}`, { scroll: false });
 
-  if (!isAllowed) {
-    return (
-      <div className="flex flex-col min-h-screen w-full p-20">
-        <div className="flex flex-col justify-center items-center align-middle text-center space-y-6 grow">
-          <p className="text-gray-500 text-3xl font-semibold"> Sorry G 😢</p>
-          <div className="text-brand grid grid-cols-[max-content_auto] gap-1">
-            <span>Either you are on:</span>
-            <div className="text-xs flex flex-col text-gray-500 px-2 py-1 space-y-3 text-start border border-brand">
-              <span>A device larger than a mobile screen</span>
-              <span className="ml-10">or</span>
-              <span>your device is in landscape mode</span>
+  return (
+    <>
+      {showBlock && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-500 ease-in-out ${animatingOut ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="flex flex-col justify-center items-center align-middle text-center space-y-6">
+              <p className="text-gray-500 text-3xl font-semibold"> Sorry G 😢</p>
+              <div className="text-brand grid grid-cols-[max-content_auto] gap-1">
+                <span>Either you are on:</span>
+                <div className="text-xs flex flex-col text-gray-500 px-2 py-1 space-y-3 text-start border border-brand">
+                  <span>A device larger than a mobile screen</span>
+                  <span className="ml-10">or</span>
+                  <span>your device is in landscape mode</span>
+                </div>
+              </div>
+              <div className="space-y-4 pr-18">
+                <p className="text-xs">
+                  Please use a <span className="text-xl text-red-200">*</span>mobile
+                  screen and portrait mode only
+                </p>
+                <p className="text-[9px] text-brand text-end">
+                  Thanks for understanding, Tutashugulikia
+                </p>
+              </div>
             </div>
           </div>
-          <p className="text-xs ml-16">Please use a <span className="text-xl text-red-200">*</span>mobile screen and portrait mode only</p>
-                    <p className="text-[9px] ml-42 text-brand"> Thanks for understanding, Tutashugulikia</p>
-
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <main className="min-h-screen">
-      <HeroCarousel />
-      <div className="relative z-10 -mt-39 md:-mt-69 mx-auto w-[90%] max-w-6xl">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 md:p-16 text-center min-h-[56vh] flex flex-col">
-          <div className="grow">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">Not Yet Uhuru</h1>
-            <p className="text-brand text-lg md:text-xl">
-              Our future is ours to shape; Redefine the financial G-A-M-E with us
-            </p>
-          </div>
+      <main className={`min-h-screen transition-opacity duration-500 ease-in-out ${showBlock && !animatingOut ? 'opacity-0' : 'opacity-100'}`}>
+        <HeroCarousel />
+        <div className="relative z-10 -mt-39 md:-mt-69 mx-auto w-[90%] max-w-6xl">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 md:p-16 text-center min-h-[56vh] flex flex-col">
+            <div className="grow">
+              <h1 className="text-4xl md:text-6xl font-bold mb-4">Not Yet Uhuru</h1>
+              <p className="text-brand text-lg md:text-xl">
+                Our future is ours to shape; Redefine the financial G-A-M-E with us
+              </p>
+            </div>
 
-          <div className="mt-auto mb-12 flex justify-center flex-col items-center gap-4">
-            {!showAuth ? (
-              <button
-                disabled={loading}
-                onClick={handleGetStarted}
-                className="cursor-pointer bg-white text-black hover:bg-gray-100 font-semibold py-4 px-10 rounded-full text-lg transition shadow-lg border-t border-gray-300 shadow-gray-400"
-              >
-                Get Started
-              </button>
-            ) : (
-              <div className="w-full max-w-sm mt-4">
-                <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-                  <input
-                    type="email"
-                    required
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-xl border px-4 py-3 text-base"
-                  />
-                  <div className="flex items-center gap-2">
+            <div className="mt-auto mb-12 flex justify-center flex-col items-center gap-4">
+              {!showAuth ? (
+                <button
+                  disabled={loading}
+                  onClick={handleGetStarted}
+                  className="cursor-pointer bg-white text-black hover:bg-gray-100 font-semibold py-4 px-10 rounded-full text-lg transition shadow-lg border-t border-gray-300 shadow-gray-400"
+                >
+                  Get Started
+                </button>
+              ) : (
+                <div className="w-full max-w-sm mt-4">
+                  <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
                     <input
-                      type="password"
+                      type="email"
                       required
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="flex-1 w-40 rounded-xl border px-4 py-3 text-base"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-xl border px-4 py-3 text-base"
                     />
-                    {isSignUp && (
+                    <div className="flex items-center gap-2">
                       <input
-                        type="text"
+                        type="password"
                         required
-                        maxLength={4}
-                        placeholder="PIN"
-                        value={pin}
-                        onChange={(e) =>
-                          setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                        }
-                        className="w-20 rounded-xl border px-2 py-3 text-sm text-center"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="flex-1 w-40 rounded-xl border px-4 py-3 text-base"
                       />
-                    )}
-                  </div>
+                      {isSignUp && (
+                        <input
+                          type="text"
+                          required
+                          maxLength={4}
+                          placeholder="PIN"
+                          value={pin}
+                          onChange={(e) =>
+                            setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                          }
+                          className="w-20 rounded-xl border px-2 py-3 text-sm text-center"
+                        />
+                      )}
+                    </div>
 
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                  <label className="flex items-center gap-1 cursor-pointer text-sm text-gray-500">
-                    <input
-                      type="checkbox"
-                      checked={isSignUp}
-                      onChange={handleToggleSignUp}
-                      className="accent-brand"
-                    />
-                    Sign Up
-                  </label>
+                    <label className="flex items-center gap-1 cursor-pointer text-sm text-gray-500">
+                      <input
+                        type="checkbox"
+                        checked={isSignUp}
+                        onChange={handleToggleSignUp}
+                        className="accent-brand"
+                      />
+                      Sign Up
+                    </label>
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-black text-white font-semibold py-4 rounded-full text-lg"
-                  >
-                    {loading ? "In a Sec. ..." : isSignUp ? "Système Join⁺" : "Con·ti·nue"}
-                  </button>
-                </form>
-              </div>
-            )}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="bg-black text-white font-semibold py-4 rounded-full text-lg"
+                    >
+                      {loading ? "In a Sec. ..." : isSignUp ? "Système Join⁺" : "Con·ti·nue"}
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
