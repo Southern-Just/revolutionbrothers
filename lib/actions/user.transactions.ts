@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/database/db";
 import { transactions, users, userProfiles } from "@/lib/database/schema";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getCurrentUser } from "./user.actions";
 import { getMyProfile } from "./user.systeme";
 import { stkPush } from "@/lib/utils/daraja";
@@ -21,69 +21,29 @@ export type TransactionDTO = {
   status: "pending" | "verified" | "declined";
   category: string;
   transactionCode: string;
+  mpesaReceipt: string | null;
   occurredAt: Date;
   createdAt: Date;
 };
 
-export type CreateTransactionInput = {
-  month: string;
-  amount: number;
-  type: "credit" | "debit";
-  category: string;
-  transactionCode: string;
-  occurredAt: Date;
-};
+/* ---------------- AUTH ---------------- */
 
-export type UpdateTransactionInput = Partial<{
-  month: string;
-  amount: number;
-  type: "credit" | "debit";
-  category: string;
-  occurredAt: Date;
-  status: "pending" | "verified" | "declined";
-}>;
-
-/* ---------------- AUTH GUARD ---------------- */
 function requireAuth(user: Awaited<ReturnType<typeof getCurrentUser>>) {
-  if (!user) redirect("/"); // replaces throwing UNAUTHORIZED
+  if (!user) redirect("/");
   return user;
 }
 
-/* ---------------- CREATE ---------------- */
-
-export async function createTransaction(input: CreateTransactionInput) {
-  const currentUser = requireAuth(await getCurrentUser());
-
-  const [tx] = await db
-    .insert(transactions)
-    .values({
-      userId: currentUser.id,
-      month: input.month,
-      amount: input.amount,
-      type: input.type,
-      category: input.category,
-      transactionCode: input.transactionCode,
-      status: "pending",
-      occurredAt: input.occurredAt,
-    })
-    .returning();
-
-  return tx;
-}
-
-/* ---------------- STK PUSH ---------------- */
+/* ---------------- DEPOSIT ---------------- */
 
 function generateTransactionCode() {
-  return `MPESA-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  return `TX-${Date.now()}`;
 }
 
 export async function initiateDeposit(amount: number) {
   const user = requireAuth(await getCurrentUser());
   const profile = await getMyProfile();
 
-  if (!profile?.phone) redirect("/"); // replaces NO_PHONE
-
-  const transactionCode = generateTransactionCode();
+  if (!profile?.phone) redirect("/");
 
   const [tx] = await db
     .insert(transactions)
@@ -93,16 +53,17 @@ export async function initiateDeposit(amount: number) {
       amount: Math.floor(amount),
       type: "credit",
       category: "mpesa",
-      transactionCode,
+      transactionCode: generateTransactionCode(),
       status: "pending",
       occurredAt: new Date(),
     })
     .returning();
 
+  // 🔑 PASS TRANSACTION ID
   await stkPush({
     phone: profile.phone,
     amount,
-    reference: transactionCode,
+    transactionId: tx.id,
   });
 
   return tx;
@@ -111,7 +72,7 @@ export async function initiateDeposit(amount: number) {
 /* ---------------- READ ---------------- */
 
 export async function getMyTransactions(): Promise<TransactionDTO[]> {
-  const currentUser = requireAuth(await getCurrentUser());
+  const user = requireAuth(await getCurrentUser());
 
   return db
     .select({
@@ -124,118 +85,29 @@ export async function getMyTransactions(): Promise<TransactionDTO[]> {
       status: transactions.status,
       category: transactions.category,
       transactionCode: transactions.transactionCode,
+      mpesaReceipt: transactions.mpesaReceipt,
       occurredAt: transactions.occurredAt,
       createdAt: transactions.createdAt,
     })
     .from(transactions)
     .leftJoin(users, eq(users.id, transactions.userId))
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .where(eq(transactions.userId, currentUser.id))
-    .orderBy(desc(transactions.occurredAt));
+    .where(eq(transactions.userId, user.id))
+    .orderBy(desc(transactions.createdAt));
 }
 
-export async function getAllTransactions(): Promise<TransactionDTO[]> {
-  const currentUser = requireAuth(await getCurrentUser());
-
-  return db
-    .select({
-      id: transactions.id,
-      userId: transactions.userId,
-      name: sql<string>`coalesce(${userProfiles.name}, ${users.email})`,
-      month: transactions.month,
-      amount: transactions.amount,
-      type: transactions.type,
-      status: transactions.status,
-      category: transactions.category,
-      transactionCode: transactions.transactionCode,
-      occurredAt: transactions.occurredAt,
-      createdAt: transactions.createdAt,
-    })
-    .from(transactions)
-    .leftJoin(users, eq(users.id, transactions.userId))
-    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .orderBy(desc(transactions.occurredAt));
-}
-
-export async function getRecentTransactionsAllUsers(limit = 6): Promise<TransactionDTO[]> {
-  noStore();
-
-  const currentUser = requireAuth(await getCurrentUser());
-
-  return db
-    .select({
-      id: transactions.id,
-      userId: transactions.userId,
-      name: sql<string>`coalesce(${userProfiles.name}, ${users.email})`,
-      month: transactions.month,
-      amount: transactions.amount,
-      type: transactions.type,
-      status: transactions.status,
-      category: transactions.category,
-      transactionCode: transactions.transactionCode,
-      occurredAt: transactions.occurredAt,
-      createdAt: transactions.createdAt,
-    })
-    .from(transactions)
-    .leftJoin(users, eq(users.id, transactions.userId))
-    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .orderBy(desc(transactions.occurredAt))
-    .limit(limit);
-}
-
-/* ---------------- UPDATE / DELETE ---------------- */
-
-export async function updateTransaction(transactionId: string, input: UpdateTransactionInput) {
-  const currentUser = requireAuth(await getCurrentUser());
-
-  const [updated] = await db
-    .update(transactions)
-    .set(input)
-    .where(
-      and(
-        eq(transactions.id, transactionId),
-        eq(transactions.userId, currentUser.id)
-      )
-    )
-    .returning();
-
-  if (!updated) redirect("/"); // replaces NOT_FOUND
-
-  return updated;
-}
-
-export async function deleteTransaction(transactionId: string) {
-  const currentUser = requireAuth(await getCurrentUser());
-
-  const deleted = await db
-    .delete(transactions)
-    .where(
-      and(
-        eq(transactions.id, transactionId),
-        eq(transactions.userId, currentUser.id)
-      )
-    )
-    .returning();
-
-  if (!deleted.length) redirect("/"); // replaces NOT_FOUND
-  return { success: true };
-}
-
-/* ---------------- TOTAL BALANCE ---------------- */
+/* ---------------- BALANCE ---------------- */
 
 export async function getTotalBalance(): Promise<number> {
   const credits = await db
     .select({ sum: sql<number>`sum(${transactions.amount})` })
     .from(transactions)
-    .where(and(eq(transactions.type, "credit"), inArray(transactions.status, ["verified", "pending"])));
+    .where(and(eq(transactions.type, "credit"), eq(transactions.status, "verified")));
 
   const debits = await db
     .select({ sum: sql<number>`sum(${transactions.amount})` })
     .from(transactions)
-    .where(and(eq(transactions.type, "debit"), inArray(transactions.status, ["verified", "pending"])));
+    .where(and(eq(transactions.type, "debit"), eq(transactions.status, "verified")));
 
-  const totalCredits = credits[0]?.sum || 0;
-  const totalDebits = debits[0]?.sum || 0;
-
-  return totalCredits - totalDebits;
+  return (credits[0]?.sum ?? 0) - (debits[0]?.sum ?? 0);
 }

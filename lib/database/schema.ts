@@ -80,6 +80,7 @@ export const transactions = pgTable("transactions", {
   type: transactionType("type").notNull(),
   status: transactionStatus("transaction_status").notNull().default("pending"),
   category: varchar("category", { length: 50 }).notNull(),
+  mpesaReceipt: varchar("mpesa_receipt", { length: 20 }),
   transactionCode: varchar("transaction_code", { length: 100 }).notNull(),
   checkoutRequestId: varchar("checkout_request_id", { length: 64 }), // ✅ optional
   occurredAt: timestamp("occurred_at").notNull(),
