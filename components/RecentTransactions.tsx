@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import { getRecentTransactionsAllUsers } from "@/lib/actions/user.transactions";
 import type { TransactionDTO } from "@/lib/actions/user.transactions";
+import Image from "next/image";
 
 /* ---------------- TYPES ---------------- */
 
-type ClientTransaction = Omit<
-  TransactionDTO,
-  "occurredAt" | "createdAt"
-> & {
+type ClientTransaction = Omit<TransactionDTO, "occurredAt" | "createdAt"> & {
   occurredAt: string;
   createdAt: string;
 };
@@ -33,8 +31,7 @@ const formatDateTime = (date: Date) =>
     hour12: true,
   }).format(date);
 
-const removeSpecialCharacters = (text: string) =>
-  text.replace(/[^\w\s]/gi, "");
+const removeSpecialCharacters = (text: string) => text.replace(/[^\w\s]/gi, "");
 
 const CategoryBadge = ({ category }: { category: string }) => (
   <div className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5">
@@ -131,7 +128,10 @@ export default function RecentTransactions() {
         <tbody className="divide-y divide-gray-200 bg-white transition-all duration-300 ease-in-out">
           {txs.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6">
+              <td
+                colSpan={6}
+                className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6"
+              >
                 No recent transactions
               </td>
             </tr>
@@ -185,10 +185,15 @@ export default function RecentTransactions() {
           )}
         </tbody>
       </table>
-
       {loading && (
-        <div className="p-2 text-center text-sm text-gray-500 bg-gray-50 border-t border-gray-200">
-          Refreshing…
+        <div className="animate-spin justify-center flex mx-auto w-full py-0">
+          <Image
+            src="/icons/loader1.svg"
+            alt="Loading"
+            width={82}
+            height={82}
+            className="animate-spin"
+          />
         </div>
       )}
     </div>
