@@ -48,8 +48,20 @@ const CategoryBadge = ({ category }: { category: string }) => (
 /* ---------------- COMPONENT ---------------- */
 
 export default function RecentTransactions() {
-  const [txs, setTxs] = useState<ClientTransaction[] | null>(null);
+  const [txs, setTxs] = useState<ClientTransaction[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const storedTxs = localStorage.getItem("recentTransactions");
+    if (storedTxs) {
+      try {
+        setTxs(JSON.parse(storedTxs));
+      } catch (err) {
+        console.error("Failed to parse stored transactions", err);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -61,44 +73,32 @@ export default function RecentTransactions() {
 
         if (!mounted) return;
 
-        setTxs(
-          data.map((t) => ({
-            ...t,
-            occurredAt: t.occurredAt.toISOString(),
-            createdAt: t.createdAt.toISOString(),
-          }))
-        );
+        const newTxs = data.map((t) => ({
+          ...t,
+          occurredAt: t.occurredAt.toISOString(),
+          createdAt: t.createdAt.toISOString(),
+        }));
+
+        setTxs(newTxs);
+        localStorage.setItem("recentTransactions", JSON.stringify(newTxs));
       } catch (err) {
         console.error("Failed to load transactions", err);
-        if (mounted) setTxs([]);
+        // Keep previous txs on error
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
     loadTransactions();
+
+    // Poll for updates every 5 seconds
+    const interval = setInterval(loadTransactions, 5000);
+
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
   }, []);
-
-  /* ---------------- STATES ---------------- */
-
-  if (!txs) {
-    return (
-      <div className="rounded-lg border border-gray-200 p-4 text-center text-sm text-gray-500">
-        Loading…
-      </div>
-    );
-  }
-
-  if (!txs.length) {
-    return (
-      <div className="rounded-lg border border-gray-200 p-4 text-center text-sm text-gray-500">
-        No recent transactions
-      </div>
-    );
-  }
 
   /* ---------------- RENDER ---------------- */
 
@@ -128,55 +128,66 @@ export default function RecentTransactions() {
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-gray-200 bg-white">
-          {txs.map((tx) => {
-            const isDebit = tx.type === "debit";
+        <tbody className="divide-y divide-gray-200 bg-white transition-all duration-300 ease-in-out">
+          {txs.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="px-3 py-4 text-center text-sm text-gray-500 sm:px-6">
+                No recent transactions
+              </td>
+            </tr>
+          ) : (
+            txs.map((tx, index) => {
+              const isDebit = tx.type === "debit";
 
-            return (
-              <tr
-                key={tx.id}
-                className={isDebit ? "bg-red-50" : "bg-green-50"}
-              >
-                <td className="px-3 py-4 whitespace-nowrap sm:px-6">
-                  <div className="text-sm font-medium text-gray-900">
-                    {removeSpecialCharacters(tx.name)}
-                  </div>
-                </td>
+              return (
+                <tr
+                  key={tx.id}
+                  className={`transition-all duration-500 ease-in-out ${
+                    isDebit ? "bg-red-50" : "bg-green-50"
+                  } ${index % 2 === 0 ? "opacity-100" : "opacity-95"}`}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <td className="px-3 py-4 whitespace-nowrap sm:px-6">
+                    <div className="text-sm font-medium text-gray-900">
+                      {removeSpecialCharacters(tx.name)}
+                    </div>
+                  </td>
 
-                <td className="px-3 py-4 whitespace-nowrap sm:px-6">
-                  <span
-                    className={`text-sm font-semibold ${
-                      isDebit ? "text-red-600" : "text-green-600"
-                    }`}
-                  >
-                    {isDebit ? "-" : "+"}
-                    {formatAmount(tx.amount)}
-                  </span>
-                </td>
+                  <td className="px-3 py-4 whitespace-nowrap sm:px-6">
+                    <span
+                      className={`text-sm font-semibold transition-colors duration-300 ${
+                        isDebit ? "text-red-600" : "text-green-600"
+                      }`}
+                    >
+                      {isDebit ? "-" : "+"}
+                      {formatAmount(tx.amount)}
+                    </span>
+                  </td>
 
-                <td className="px-3 py-4 whitespace-nowrap sm:px-6">
-                  <CategoryBadge category={tx.status} />
-                </td>
+                  <td className="px-3 py-4 whitespace-nowrap sm:px-6">
+                    <CategoryBadge category={tx.status} />
+                  </td>
 
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 sm:px-6">
-                  {formatDateTime(new Date(tx.occurredAt))}
-                </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 sm:px-6">
+                    {formatDateTime(new Date(tx.occurredAt))}
+                  </td>
 
-                <td className="hidden px-6 py-4 whitespace-nowrap text-sm text-gray-500 md:table-cell">
-                  {tx.transactionCode}
-                </td>
+                  <td className="hidden px-6 py-4 whitespace-nowrap text-sm text-gray-500 md:table-cell">
+                    {tx.transactionCode}
+                  </td>
 
-                <td className="hidden px-6 py-4 whitespace-nowrap md:table-cell">
-                  <CategoryBadge category={tx.category} />
-                </td>
-              </tr>
-            );
-          })}
+                  <td className="hidden px-6 py-4 whitespace-nowrap md:table-cell">
+                    <CategoryBadge category={tx.category} />
+                  </td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
 
       {loading && (
-        <div className="p-2 text-center text-sm text-gray-500">
+        <div className="p-2 text-center text-sm text-gray-500 bg-gray-50 border-t border-gray-200">
           Refreshing…
         </div>
       )}

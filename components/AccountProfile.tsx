@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Footer from "./Footer";
 import { toast } from "sonner";
@@ -36,9 +36,12 @@ export default function AccountProfile() {
 
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [crop, setCrop] = useState<Crop>({ unit: "%", width: 50, aspect: 1 });
+  const [crop, setCrop] = useState<Crop>({ unit: "%", width: 50, height: 50, x: 0, y: 0 });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [imageSrc, setImageSrc] = useState<string>("");
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const [creditLimit, setCreditLimit] = useState(10000);
 
@@ -135,8 +138,8 @@ export default function AccountProfile() {
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
-    canvas.width = 80;
-    canvas.height = 80;
+    canvas.width = 200;
+    canvas.height = 200;
 
     ctx.drawImage(
       image,
@@ -146,8 +149,8 @@ export default function AccountProfile() {
       crop.height * scaleY,
       0,
       0,
-      80,
-      80
+      200,
+      200
     );
 
     return new Promise((resolve) => {
@@ -156,37 +159,33 @@ export default function AccountProfile() {
   };
 
   const handleCropConfirm = async () => {
-    if (!completedCrop || !selectedFile || !imageSrc) {
+    if (!completedCrop || !selectedFile || !imageSrc || !imgRef.current) {
       toast.error("Please select a crop area.");
       return;
     }
 
-    const image = new window.Image();
-    image.src = imageSrc;
-    image.onload = async () => {
-      const croppedBlob = await getCroppedImg(image, completedCrop, selectedFile.name);
-      if (!croppedBlob) {
-        toast.error("Failed to process image.");
-        return;
-      }
+    const croppedBlob = await getCroppedImg(imgRef.current, completedCrop, selectedFile.name);
+    if (!croppedBlob) {
+      toast.error("Failed to process image.");
+      return;
+    }
 
-      const croppedFile = new File([croppedBlob], selectedFile.name, { type: "image/jpeg" });
+    const croppedFile = new File([croppedBlob], selectedFile.name, { type: "image/jpeg" });
 
-      try {
-        const url = await uploadProfileImage(croppedFile);
+    try {
+      const url = await uploadProfileImage(croppedFile);
 
-        await updateMyProfile({ profileImage: url });
+      await updateMyProfile({ profileImage: url });
 
-        setPersonal((p) => ({ ...p, profileImage: url }));
-        toast.success("Profile image updated");
-        setCropModalOpen(false);
-        setSelectedFile(null);
-        setImageSrc("");
-        setCompletedCrop(null);
-      } catch {
-        toast.error("Failed to upload image");
-      }
-    };
+      setPersonal((p) => ({ ...p, profileImage: url }));
+      toast.success("Profile image updated");
+      setCropModalOpen(false);
+      setSelectedFile(null);
+      setImageSrc("");
+      setCompletedCrop(null);
+    } catch {
+      toast.error("Failed to upload image");
+    }
   };
 
   const displayName =
@@ -211,7 +210,10 @@ export default function AccountProfile() {
       <div className="mb-4 flex justify-center">
         <div className="flex w-[94%] max-w-md items-center justify-between gap-8 rounded-2xl border border-gray-200 p-4 shadow-sm">
           <label className="relative cursor-pointer">
-            <div className="relative h-20 w-20 overflow-hidden rounded-full border bg-gray-200 p-0.5">
+            <div
+              className="relative h-20 w-20 overflow-hidden rounded-full border bg-gray-200 p-0.5"
+              onClick={() => !isEditing && setShowImageModal(true)}
+            >
               <Image
                 src={personal.profileImage || "/icons/profiles.svg"}
                 alt="profile"
@@ -249,6 +251,28 @@ export default function AccountProfile() {
         </div>
       </div>
 
+      {showImageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full text-center">
+            <div className="relative h-48 w-48 mx-auto mb-4 overflow-hidden rounded-full border bg-gray-200">
+              <Image
+                src={personal.profileImage || "/icons/profiles.svg"}
+                alt="profile"
+                fill
+                className="rounded-full object-cover"
+              />
+            </div>
+            <p className="text-sm text-gray-600 mb-4">Click edit button below to update</p>
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="px-4 py-2 bg-gray-300 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {cropModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-lg max-w-md w-full">
@@ -258,18 +282,24 @@ export default function AccountProfile() {
               onChange={setCrop}
               onComplete={setCompletedCrop}
               aspect={1}
-              onLoad={(img) => {
-                const size = Math.min(img.width, img.height);
-                setCrop({
-                  unit: "px",
-                  width: size,
-                  height: size,
-                  x: (img.width - size) / 2,
-                  y: (img.height - size) / 2,
-                });
-              }}
             >
-              <img src={imageSrc} alt="Crop preview" className="max-w-full" />
+              <img
+                ref={imgRef}
+                src={imageSrc}
+                alt="Crop preview"
+                className="max-w-full"
+                onLoad={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  const size = Math.min(img.width, img.height);
+                  setCrop({
+                    unit: "px",
+                    width: size,
+                    height: size,
+                    x: (img.width - size) / 2,
+                    y: (img.height - size) / 2,
+                  });
+                }}
+              />
             </ReactCrop>
             <div className="mt-4 flex justify-end gap-2">
               <button

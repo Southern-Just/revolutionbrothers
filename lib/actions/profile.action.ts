@@ -1,7 +1,6 @@
 "use server";
 
 import ImageKit from "imagekit";
-import { updateMyProfile } from "@/lib/actions/user.systeme";
 
 const imagekit = new ImageKit({
   publicKey: process.env.IMAGEKIT_PUBLIC_KEY!,
@@ -18,6 +17,5 @@ export async function uploadProfileImage(file: File) {
     fileName: `profile_${Date.now()}`,
   });
 
-  await updateMyProfile({ profileImage: result.url });
   return result.url;
 }
