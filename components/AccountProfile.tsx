@@ -13,6 +13,7 @@ import {
   type MyProfile,
 } from "@/lib/actions/user.systeme";
 import { uploadProfileImage } from "@/lib/actions/profile.action";
+import FInancialHealth from "./FInancialHealth";
 
 function FieldSkeleton() {
   return <div className="h-4 w-40 animate-pulse rounded bg-gray-200" />;
@@ -36,26 +37,18 @@ export default function AccountProfile() {
 
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [crop, setCrop] = useState<Crop>({ unit: "%", width: 50, height: 50, x: 0, y: 0 });
+  const [crop, setCrop] = useState<Crop>({
+    unit: "%",
+    width: 50,
+    height: 50,
+    x: 0,
+    y: 0,
+  });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [imageSrc, setImageSrc] = useState<string>("");
   const imgRef = useRef<HTMLImageElement>(null);
 
   const [showImageModal, setShowImageModal] = useState(false);
-
-  const [creditLimit, setCreditLimit] = useState(10000);
-
-  const totalSavings = 10000;
-  const loanBalance = 1000;
-
-  const financialHealth = Math.min(
-    100,
-    Math.round((totalSavings / creditLimit) * 100)
-  );
-
-  const refreshCreditLimit = () => {
-    setCreditLimit(Math.floor(Math.random() * 20000) + 5000);
-  };
 
   useEffect(() => {
     let mounted = true;
@@ -164,13 +157,19 @@ export default function AccountProfile() {
       return;
     }
 
-    const croppedBlob = await getCroppedImg(imgRef.current, completedCrop, selectedFile.name);
+    const croppedBlob = await getCroppedImg(
+      imgRef.current,
+      completedCrop,
+      selectedFile.name
+    );
     if (!croppedBlob) {
       toast.error("Failed to process image.");
       return;
     }
 
-    const croppedFile = new File([croppedBlob], selectedFile.name, { type: "image/jpeg" });
+    const croppedFile = new File([croppedBlob], selectedFile.name, {
+      type: "image/jpeg",
+    });
 
     try {
       const url = await uploadProfileImage(croppedFile);
@@ -194,7 +193,7 @@ export default function AccountProfile() {
     (personal.email ? personal.email.split("@")[0] : "User");
 
   const fields = [
-    { label: "Name", key: "name" },
+    { label: "Full Name", key: "name" },
     { label: "Email", key: "email" },
     { label: "Phone Number", key: "phone" },
     { label: "Username", key: "username" },
@@ -252,8 +251,13 @@ export default function AccountProfile() {
       </div>
 
       {showImageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full text-center">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs bg-opacity-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowImageModal(false); // outside the kasmall modal
+          }}
+        >
+          <div className="bg-background p-6 rounded-3xl max-w-md w-[90%] text-center">
             <div className="relative h-48 w-48 mx-auto mb-4 overflow-hidden rounded-full border bg-gray-200">
               <Image
                 src={personal.profileImage || "/icons/profiles.svg"}
@@ -262,13 +266,26 @@ export default function AccountProfile() {
                 className="rounded-full object-cover"
               />
             </div>
-            <p className="text-sm text-gray-600 mb-4">Click edit button below to update</p>
-            <button
-              onClick={() => setShowImageModal(false)}
-              className="px-4 py-2 bg-gray-300 rounded"
-            >
-              Close
-            </button>
+            <p className="text-sm text-gray-600 mb-4">
+              Showing image saved as seen
+            </p>
+            <div className="flex justify-center gap-8">
+              <button
+                onClick={() => {
+                  setIsEditing(true);
+                  setShowImageModal(false); 
+                }}
+                className="px-4 py-1 bg-brand text-white rounded"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="px-4 py-1 bg-gray-300 rounded"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -283,11 +300,13 @@ export default function AccountProfile() {
               onComplete={setCompletedCrop}
               aspect={1}
             >
-              <img
+              <Image
                 ref={imgRef}
                 src={imageSrc}
                 alt="Crop preview"
                 className="max-w-full"
+                width={400}
+                height={400}
                 onLoad={(e) => {
                   const img = e.target as HTMLImageElement;
                   const size = Math.min(img.width, img.height);
@@ -351,41 +370,7 @@ export default function AccountProfile() {
           </button>
         </div>
       </section>
-
-      <section className="rounded-2xl bg-white p-6 shadow-sm">
-        <div className="mb-3 flex justify-between">
-          <span>Credit Limit</span>
-          <div className="flex items-center gap-4">
-            <button onClick={refreshCreditLimit}>⟳</button>
-            <p>Ksh {creditLimit.toLocaleString()}</p>
-          </div>
-        </div>
-
-        <div className="mb-3 flex justify-between">
-          <span>Loan Balance</span>
-          <p>Ksh {loanBalance.toLocaleString()}</p>
-        </div>
-
-        <div className="mb-3 flex justify-between">
-          <span>Total Savings</span>
-          <p>Ksh {totalSavings.toLocaleString()}</p>
-        </div>
-
-        <div className="mt-6">
-          <div className="mb-2 flex justify-between">
-            <span>Financial Health</span>
-            <span>{financialHealth}%</span>
-          </div>
-
-          <div className="h-2 w-full rounded-full bg-gray-200">
-            <div
-              className="h-full rounded-full bg-brand transition-all"
-              style={{ width: `${financialHealth}%` }}
-            />
-          </div>
-        </div>
-      </section>
-
+      <FInancialHealth />
       <Footer />
     </div>
   );

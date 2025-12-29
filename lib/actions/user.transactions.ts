@@ -263,3 +263,27 @@ export async function cleanupStalePendingTransactions() {
       )
     );
 }
+// ... existing code ...
+
+/* ---------------- MY TOTAL BALANCE ---------------- */
+
+export async function getMyTotalBalance(): Promise<number> {
+  const currentUser = requireAuth(await getCurrentUser());
+
+  const credits = await db
+    .select({ sum: sql<number>`sum(${transactions.amount})` })
+    .from(transactions)
+    .where(and(eq(transactions.userId, currentUser.id), eq(transactions.type, "credit"), eq(transactions.status, "verified")));
+
+  const debits = await db
+    .select({ sum: sql<number>`sum(${transactions.amount})` })
+    .from(transactions)
+    .where(and(eq(transactions.userId, currentUser.id), eq(transactions.type, "debit"), eq(transactions.status, "verified")));
+
+  const totalCredits = credits[0]?.sum || 0;
+  const totalDebits = debits[0]?.sum || 0;
+
+  return totalCredits - totalDebits;
+}
+
+// ... existing cleanup function ...
