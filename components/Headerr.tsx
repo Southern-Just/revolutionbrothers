@@ -10,23 +10,15 @@ const Header = () => {
 
   return (
     <>
-      <div className="mb-0 w-full justify-between flex px-2 py-3">
-        <p className="text-brand indent-0.5 p-6 px-2" onClick={()=>{router.push("/revolution")}}>Savings and investment co.</p>
-        {/* <button
-          className="py-2 px-4 cursor-pointer text-xl"
-          onClick={() => {
-            setOpen(true);
-          }}
-        >
-          🔘
-        </button> */}
+      <div className="mb-0 w-full justify-between flex items-center px-2 py-3">
+        <p className="text-brand indent-0.5" onClick={()=>{router.push("/revolution")}}>Savings and investment co.</p>
                 <button
           className="cursor-pointer text-xl"
           onClick={() => {
             setOpen(true);
           }}
-        >
-          <Image src="/icons/hamburger-menu.svg" width={60} height={60} alt="hamburger"/>
+        >\rek
+          <Image src="/icons/hamburger.svg" width={120} height={120} alt="hamburger"/>
         </button>
       </div>
       <div>
