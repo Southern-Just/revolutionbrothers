@@ -10,16 +10,8 @@ const Header = () => {
 
   return (
     <>
-      <div className="mb-0 w-full justify-between flex px-2 py-3">
+      <div className="mb-0 w-full justify-between flex px-2 py-1">
         <p className="text-brand indent-0.5 p-6 px-2" onClick={()=>{router.push("/revolution")}}>Savings and investment co.</p>
-        {/* <button
-          className="py-2 px-4 cursor-pointer text-xl"
-          onClick={() => {
-            setOpen(true);
-          }}
-        >
-          🔘
-        </button> */}
                 <button
           className="cursor-pointer text-xl"
           onClick={() => {

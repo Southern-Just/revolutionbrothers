@@ -30,7 +30,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
       <aside
         className={`fixed top-0 right-0 h-full w-1/2 z-50
         bg-black/60 backdrop-blur-xl text-white
-        rounded-l-3xl shadow-2xl
+        rounded-l-xl shadow-2xl
         transform transition-all duration-500
         [ease-[cubic-bezier(0.16,1,0.3,1)]]
         ${
