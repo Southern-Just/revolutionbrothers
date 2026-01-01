@@ -63,7 +63,7 @@ export default function Members() {
               return (
                 <div
                   key={role}
-                  className="w-20 h-20 p-1 rounded-full border border-brand/30 flex flex-col items-center justify-center shadow-md animate-pulse"
+                  className="w-21 h-21 p-1 rounded-full border border-brand/30 flex flex-col items-center justify-center shadow-md animate-pulse"
                 >
                   <div className="w-10 h-3 bg-gray-300 rounded mb-1" />
                   <div className="w-8 h-2 bg-gray-200 rounded" />
@@ -75,12 +75,22 @@ export default function Members() {
               <div
                 key={role}
                 onClick={() => clickable && router.push("/account")}
-                className={`w-20 h-20 p-1 rounded-full border border-brand flex flex-col items-center justify-center shadow-md transition text-center ${
+                className={`relative w-21 h-21 p-1 rounded-full border border-brand flex flex-col items-center justify-center shadow-md transition text-center ${
                   clickable ? "cursor-pointer hover:scale-105" : "cursor-default"
                 }`}
               >
                 <p className="text-sm font-semibold">{member.name}</p>
                 <p className="text-xs text-gray-400">{member.role}</p>
+                <div className="absolute bottom-full mb-2 bg-white p-2 rounded shadow opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center">
+                  <Image
+                    src={member.profileImage || "/icons/profiles.svg"}
+                    alt={member.name}
+                    width={50}
+                    height={50}
+                    className="rounded-full"
+                  />
+                  <p className="text-[9px] text-gray-600 mt-1">ID: {member.userId}</p>
+                </div>
               </div>
             );
           })}
