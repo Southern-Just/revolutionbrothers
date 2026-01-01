@@ -29,15 +29,10 @@ const useGreeting = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const greetingRef = useRef<HTMLDivElement>(null);
 
-  const getGreeting = (hours: number, minutes: number, seconds: number) => {
-    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-    const morningEnd = 11 * 3600; // 11:00 AM
-    const almostNoonEnd = 12.5 * 3600; // 12:30 PM
-    const afternoonEnd = 14 * 3600; // 2:00 PM
-
-    if (totalSeconds < morningEnd) return "Good Morning ☀️";
-    if (totalSeconds < almostNoonEnd) return "Almost Noon 🌤️";
-    if (totalSeconds < afternoonEnd) return "After Noon 🌇";
+  const getGreeting = (hours: number) => {
+    if (hours < 10) return "Good Morning ☀️";
+    if (hours < 12) return "Almost Noon 🌤️";
+    if (hours < 14) return "Good Afternoon 🌇";
     return "Good Evening 🌙";
   };
 
@@ -53,34 +48,31 @@ const useGreeting = () => {
 
       const now = new Date();
       const hours = now.getHours();
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
-      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
 
-      // Define time ranges in seconds
-      const morningEnd = 11 * 3600;
-      const almostNoonEnd = 12.5 * 3600;
-      const afternoonEnd = 14 * 3600;
+      let offset = 0;
+      let greetingText = "";
 
-      let smoothOffset = 0;
-      let progress = 0;
-
-      if (totalSeconds <= morningEnd) {
-        // Morning: Left to Center
-        progress = totalSeconds / morningEnd;
-        smoothOffset = (maxOffset / 2) * progress;
-      } else if (totalSeconds <= almostNoonEnd) {
-        // Almost Noon: Center to Right
-        progress = (totalSeconds - morningEnd) / (almostNoonEnd - morningEnd);
-        smoothOffset = maxOffset / 2 + (maxOffset / 4) * progress;
+      if (hours < 10) {
+        // Far left
+        offset = 0;
+        greetingText = "Good Morning ☀️";
+      } else if (hours < 12) {
+        // Center
+        offset = maxOffset / 2;
+        greetingText = "Almost Noon 🌤️";
+      } else if (hours < 14) {
+        // Center
+        offset = maxOffset / 2;
+        greetingText = "Good Afternoon 🌇";
       } else {
-        // Afternoon/Evening: Stay at Right
-        smoothOffset = maxOffset;
+        // Far right
+        offset = maxOffset;
+        greetingText = "Good Evening 🌙";
       }
 
       // Update greeting and offset
-      setGreeting(getGreeting(hours, minutes, seconds));
-      setDragOffset(smoothOffset);
+      setGreeting(greetingText);
+      setDragOffset(offset);
 
       // Apply rounded edges based on position
       const c = container.getBoundingClientRect();

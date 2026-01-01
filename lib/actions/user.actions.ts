@@ -19,23 +19,27 @@ export type SignUpInput = {
   pin: string;
 };
 
+export type ResetPasswordInput = {
+  email: string;
+  pin: string;
+  newPassword: string;
+};
+
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 
-/* ---------------- SIGN IN ---------------- */
-
 export async function signIn({ email, password }: SignInInput) {
-  const standardEmail = email.toLowerCase().trim();
+  const normalizedEmail = email.toLowerCase().trim();
 
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, standardEmail))
+    .where(eq(users.email, normalizedEmail))
     .limit(1);
 
   if (!user) throw new Error("INVALID_CREDENTIALS");
 
-  const isValid = await bcrypt.compare(password, user.passwordHash);
-  if (!isValid) throw new Error("INVALID_CREDENTIALS");
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) throw new Error("INVALID_CREDENTIALS");
 
   const expiresAt = new Date(Date.now() + SESSION_DURATION);
 
@@ -56,14 +60,8 @@ export async function signIn({ email, password }: SignInInput) {
     path: "/",
   });
 
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  };
+  return { success: true };
 }
-
-/* ---------------- SIGN UP ---------------- */
 
 export async function signUp({ email, password, pin }: SignUpInput) {
   if (pin !== "9095") throw new Error("INVALID_PIN");
@@ -71,17 +69,17 @@ export async function signUp({ email, password, pin }: SignUpInput) {
   const normalizedEmail = email.toLowerCase().trim();
   const username = normalizedEmail.split("@")[0];
 
-  const existingUser = await db
+  const existing = await db
     .select({ id: users.id })
     .from(users)
     .where(eq(users.email, normalizedEmail))
     .limit(1);
 
-  if (existingUser.length) throw new Error("USER_EXISTS");
+  if (existing.length) throw new Error("USER_EXISTS");
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const [newUser] = await db
+  const [user] = await db
     .insert(users)
     .values({
       email: normalizedEmail,
@@ -93,7 +91,7 @@ export async function signUp({ email, password, pin }: SignUpInput) {
     .returning({ id: users.id });
 
   await db.insert(userProfiles).values({
-    userId: newUser.id,
+    userId: user.id,
     name: username,
     username,
     nationalId: "",
@@ -103,7 +101,33 @@ export async function signUp({ email, password, pin }: SignUpInput) {
   return { success: true };
 }
 
-/* ---------------- LOGOUT ---------------- */
+export async function resetPassword({
+  email,
+  pin,
+  newPassword,
+}: ResetPasswordInput) {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, normalizedEmail))
+    .limit(1);
+
+  if (!user) throw new Error("USER_NOT_FOUND");
+  if (user.pin !== pin) throw new Error("INVALID_PIN");
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+
+  await db
+    .update(users)
+    .set({ passwordHash: newHash })
+    .where(eq(users.id, user.id));
+
+  await db.delete(sessions).where(eq(sessions.userId, user.id));
+
+  return { success: true };
+}
 
 export async function logout() {
   const cookieStore = await cookies();
@@ -116,8 +140,6 @@ export async function logout() {
 
   return { success: true };
 }
-
-/* ---------------- CURRENT USER ---------------- */
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
@@ -138,7 +160,6 @@ export async function getCurrentUser() {
 
   return result?.user ?? null;
 }
-
 
 export const getTermsPdf = async (): Promise<{
   file: ArrayBuffer;
