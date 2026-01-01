@@ -99,9 +99,16 @@ export default function Revolution() {
     <main>
       <section className="w-[94%] mx-auto items-center justify-center page-animate">
         <div className="space-y-2 mb-8">
-          <h1 className="font-bold text-2xl px-4 shadow-lg shadow-brand/40">
+         <div className="flex  shadow-lg shadow-brand/40"> <h1 className="font-bold text-2xl px-4">
             Revolution Brother&apos;s Finances
           </h1>
+                  <button
+          className="py-2 px-4 cursor-pointer text-xl"
+          onClick={() => { }}
+        >
+          🔘
+        </button> 
+        </div>
           <p className="text-end mr-4">Account as of {accountDate}</p>
         </div>
 
