@@ -15,7 +15,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
   const handleLogout = async () => {
     await logout();
     onClose();
-    router.replace("/");
+    router.replace("/sign-in");
   };
 
   return (
