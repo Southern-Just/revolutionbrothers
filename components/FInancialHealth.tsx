@@ -22,7 +22,7 @@ const FinancialHealth = () => {
       try {
         const savings = await getMyTotalBalance();
         if (!mounted) return;
-        const startDate = new Date(2025, 4, 28); 
+        const startDate = new Date(2025, 3, 28); 
         const now = new Date();
         const monthsElapsed = Math.max(0, (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth()));
         const expectedArrears = monthsElapsed * 1000;
