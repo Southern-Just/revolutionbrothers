@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
 import RecentTransactions from "@/components/RecentTransactions";
@@ -29,7 +29,7 @@ export default function Revolution() {
   const [treasurerPhone, setTreasurerPhone] = useState<string | null>(null);
   const [totalBalance, setTotalBalance] = useState(0);
   const [accountDate, setAccountDate] = useState<string>("");
-
+  const router = useRouter()
   useEffect(() => {
     const fetchData = () => {
       getTotalBalance().then((balance) => {
@@ -64,7 +64,7 @@ export default function Revolution() {
               className="py-2 px-4 cursor-pointer text-md bg-gray-50"
               onClick={() => {}}
             >
-              🔘 <span className="text-[9px]">investments</span>
+              🔘 <span className="text-[9px]" onClick={()=>{router.push("/investments")}}>investments</span>
             </button>
           </div>
           <p className="text-end mr-4">Account as of {accountDate}</p>
