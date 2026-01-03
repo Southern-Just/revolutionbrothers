@@ -62,9 +62,9 @@ export default function Revolution() {
             </h1>
             <button
               className="py-2 px-4 cursor-pointer text-md bg-gray-50"
-              onClick={() => {}}
+              onClick={() => {router.push("/investments")}}
             >
-              🔘 <span className="text-[9px]" onClick={()=>{router.push("/investments")}}>investments</span>
+              🔘 <span className="text-[9px]")}}>investments</span>
             </button>
           </div>
           <p className="text-end mr-4">Account as of {accountDate}</p>
