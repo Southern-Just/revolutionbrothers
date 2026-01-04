@@ -11,7 +11,7 @@ const Header = () => {
   return (
     <>
       <div className="mb-0 w-full justify-between flex px-2 py-1">
-        <p className="text-brand indent-0.5 p-6 px-2" onClick={()=>{router.push("/revolution")}}>Savings and investment co.</p>
+        <p className="text-brand indent-0.5 p-6 px-2" onClick={()=>{router.push("/")}}>Savings and investment co.</p>
                 <button
           className="cursor-pointer text-xl"
           onClick={() => {
