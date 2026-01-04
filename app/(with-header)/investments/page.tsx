@@ -1,24 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { suggestInvestment, voteOnInvestment, getInvestments, removeInvestment } from "@/lib/actions/investment.actions";
+import { getCurrentUser } from "@/lib/actions/user.actions";
+import Image from "next/image"
 
 interface NewProject {
   name: string;
   cost: string;
   time: string;
   details: string;
+  return?: string;
 }
 
 interface SuggestedProject {
-  id: number;
+  id: string;
   name: string;
-  suggester: string;
-  details: string;
-  cost: string;
-  return: string;
-  time: string;
+  suggester: string | null;
+  suggesterId: string;
+  details: string | null;
+  cost: string | null;
+  return: string | null;
+  time: string | null;
   votes: number;
   hasVoted: boolean;
+  status: "suggested" | "approved" | "active" | "completed";
+  inCharge?: string[] | null;
+  progress?: number | null;
+  amountInvested?: number | null;
+  createdAt: Date;
+}
+
+interface CurrentUser {
+  id: string;
 }
 
 const INITIAL_PROJECT: NewProject = {
@@ -28,44 +42,47 @@ const INITIAL_PROJECT: NewProject = {
   details: "",
 };
 
-const INITIAL_SUGGESTED_PROJECTS: SuggestedProject[] = [
-  {
-    id: 1,
-    name: "Solar Power Installation",
-    suggester: "Brian",
-    details:
-      "Small-scale solar installation for rental units to reduce power costs and generate long-term savings.",
-    cost: "KES 220k",
-    return: "~18%",
-    time: "24 months",
-    votes: 12,
-    hasVoted: false,
-  },
-  {
-    id: 2,
-    name: "Poultry Farming",
-    suggester: "Amina",
-    details: "",
-    cost: "KES 150k",
-    return: "",
-    time: "",
-    votes: 7,
-    hasVoted: false,
-  },
-];
-
-/* =======================
-   Component
-======================= */
 export default function Investment() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [newProject, setNewProject] = useState<NewProject>(INITIAL_PROJECT);
-  const [suggestedProjects, setSuggestedProjects] =
-    useState<SuggestedProject[]>(INITIAL_SUGGESTED_PROJECTS);
+  const [projects, setProjects] = useState<SuggestedProject[]>([]);
+  const [isPageVisible, setIsPageVisible] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-  /* =======================
-     Handlers
-  ======================= */
+  useEffect(() => {
+    const timer = setTimeout(() => setIsPageVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    fetchInvestments();
+    fetchCurrentUser();
+  }, []);
+
+  const fetchInvestments = async () => {
+    try {
+      setLoading(true);
+      const data = await getInvestments();
+      setProjects(data);
+    } catch (err) {
+      setError("Failed to load investments");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+    } catch (err) {
+      console.error("Failed to get current user", err);
+    }
+  };
+
   const openModal = (): void => {
     setIsModalOpen(true);
   };
@@ -75,50 +92,96 @@ export default function Investment() {
     setNewProject(INITIAL_PROJECT);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
-    const { name, cost, time, details } = newProject;
+    const { name, cost, time, details, return: returnValue } = newProject;
     if (!name || !cost || !time || !details) return;
 
-    setSuggestedProjects((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        name,
-        suggester: "You",
-        details,
-        cost,
-        return: "",
-        time,
-        votes: 0,
-        hasVoted: false,
-      },
-    ]);
-
-    closeModal();
+    try {
+      await suggestInvestment({ name, cost, time, details, return: returnValue });
+      await fetchInvestments();
+      closeModal();
+    } catch (err) {
+      setError("Failed to suggest investment");
+      console.error(err);
+    }
   };
 
-  const handleVote = (id: number): void => {
-    setSuggestedProjects((prev) =>
-      prev.map((project) =>
-        project.id === id
-          ? {
-              ...project,
-              votes: project.hasVoted
-                ? project.votes - 1
-                : project.votes + 1,
-              hasVoted: !project.hasVoted,
-            }
-          : project
-      )
+  const handleVote = async (id: string): Promise<void> => {
+    try {
+      const result = await voteOnInvestment({ investmentId: id });
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === id
+            ? {
+                ...project,
+                votes: result.votes,
+                hasVoted: result.hasVoted,
+              }
+            : project
+        )
+      );
+    } catch (err) {
+      setError("Failed to vote");
+      console.error(err);
+    }
+  };
+
+  const handleRemove = async (id: string): Promise<void> => {
+    if (!confirm("Are you sure you want to remove this suggested project?")) return;
+
+    try {
+      await removeInvestment({ investmentId: id });
+      await fetchInvestments();
+    } catch (err) {
+      setError("Failed to remove investment");
+      console.error(err);
+    }
+  };
+
+  const suggestedProjects = projects.filter((p) => p.status === "suggested");
+  const approvedProjects = projects.filter((p) => p.status === "approved" || p.status === "active" || p.status === "completed");
+
+  if (loading) {
+    return (
+      <main className="min-h-screen px-3 flex justify-center items-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 text-gray-400">
+        <Image
+          src="/icons/loader1.svg"
+          alt="Loading"
+          width={220}
+          height={220}
+          className="animate-spin"
+        />
+          <p className="mt-2 text-gray-400">Loading investments...</p>
+        </div>
+      </main>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen px-3 flex justify-center items-center">
+        <div className="text-center">
+          <p className="text-red-400">Kaalei, {error}</p>
+          <button onClick={fetchInvestments} className="mt-2 text-brand underline">
+            Retry
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen px-3 flex justify-center">
+    <main
+      className={`min-h-screen px-3 flex justify-center transition-all duration-700 ease-out ${
+        isPageVisible
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-4"
+      }`}
+    >
       <div className="w-full max-w-6xl py-4 space-y-6">
-        {/* Header */}
         <header className="space-y-1 ml-2">
           <h1 className="text-xl font-bold">Investments Hub</h1>
           <p className="text-gray-400 text-xs">
@@ -126,7 +189,6 @@ export default function Investment() {
           </p>
         </header>
 
-        {/* Top Actions */}
         <section className="rounded-2xl bg-white/5 border border-brand/30 p-4 shadow space-y-3">
           <h2 className="font-semibold">Have an Investment Idea?</h2>
           <p className="text-sm text-gray-400">
@@ -142,122 +204,124 @@ export default function Investment() {
           </button>
         </section>
 
-        {/* Suggested Projects */}
         <section className="space-y-4">
           <h2 className="text-xs uppercase tracking-wide text-gray-400 px-1">
             Suggested Projects (Voting)
           </h2>
 
-          {suggestedProjects.map((project) => (
-            <div
-              key={project.id}
-              className="rounded-2xl bg-white/5 p-4 border border-brand/20 shadow space-y-3"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold">{project.name}</h3>
-                  <p className="text-xs text-gray-400">
-                    Suggested by {project.suggester}
-                  </p>
+          {suggestedProjects.length === 0 ? (
+            <p className="text-gray-400 text-sm">No suggested projects yet.</p>
+          ) : (
+            suggestedProjects.map((project) => (
+              <div
+                key={project.id}
+                className="rounded-2xl bg-white/5 p-4 border border-brand/20 shadow space-y-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold">{project.name}</h3>
+                    <p className="text-xs text-gray-400">
+                      Suggested by {project.suggester || "Unknown"}
+                    </p>
+                  </div>
+
+                  <div className="flex space-x-2">
+                    {currentUser && project.suggesterId === currentUser.id && (
+                      <button
+                        onClick={() => handleRemove(project.id)}
+                        className="text-red-400 hover:text-red-600 text-xs underline"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleVote(project.id)}
+                      title="Vote"
+                      className={`w-7 h-7 rounded-full border flex items-center justify-center transition ${
+                        project.hasVoted
+                          ? "bg-brand text-white border-brand"
+                          : "border-brand text-brand hover:bg-white/10"
+                      }`}
+                    >
+                      ✓
+                    </button>
+                  </div>
                 </div>
 
-                <button
-                  onClick={() => handleVote(project.id)}
-                  title="Vote"
-                  className={`w-7 h-7 rounded-full border flex items-center justify-center transition ${
-                    project.hasVoted
-                      ? "bg-brand text-white border-brand"
-                      : "border-brand text-brand hover:bg-white/10"
-                  }`}
-                >
-                  ✓
-                </button>
-              </div>
+                <p className="text-sm text-gray-300">{project.details || ""}</p>
 
-              <p className="text-sm text-gray-300">{project.details}</p>
+                <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
+                  {project.cost && <span>Cost: {project.cost}</span>}
+                  {project.return && <span>Return: {project.return}</span>}
+                  {project.time && <span>Time: {project.time}</span>}
+                </div>
 
-              <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
-                <span>Cost: {project.cost}</span>
-                {project.return && <span>Return: {project.return}</span>}
-                {project.time && <span>Time: {project.time}</span>}
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-400">Votes</span>
+                  <span className="text-brand font-semibold">
+                    {project.votes}
+                  </span>
+                </div>
               </div>
-
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">Votes</span>
-                <span className="text-brand font-semibold">
-                  {project.votes}
-                </span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </section>
 
-        {/* Approved / Active Investments */}
         <section className="space-y-4">
           <h2 className="text-xs uppercase tracking-wide text-gray-400 px-1">
             Approved Investments
           </h2>
 
-          {/* Active Investment */}
-          <details className="rounded-2xl bg-white/5 p-4 border border-brand/20 shadow">
-            <summary className="cursor-pointer list-none">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold">Commercial Farming</h3>
-                  <p className="text-xs text-gray-400">
-                    In charge: David & Amina
-                  </p>
+          {approvedProjects.length === 0 ? (
+            <p className="text-gray-400 text-sm">No approved investments yet.</p>
+          ) : (
+            approvedProjects.map((project) => (
+              <details
+                key={project.id}
+                className={`rounded-2xl bg-white/5 p-4 border shadow ${
+                  project.status === "completed" ? "border-brand/10" : "border-brand/20"
+                }`}
+              >
+                <summary className="cursor-pointer list-none">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">{project.name}</h3>
+                      <p className="text-xs text-gray-400">
+                        In charge: {project.inCharge ? project.inCharge.join(" & ") : "TBD"}
+                      </p>
+                    </div>
+                    <span className="text-xs text-brand capitalize">{project.status}</span>
+                  </div>
+
+                  {project.status === "active" && project.progress !== null && project.progress !== undefined && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-[11px] text-gray-400">
+                        <span>Progress</span>
+                        <span>{project.progress}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-black/30 overflow-hidden">
+                        <div className="h-full bg-brand rounded-full" style={{ width: `${project.progress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </summary>
+
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm text-gray-300">{project.details || ""}</p>
+
+                  {project.amountInvested && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Amount Invested</span>
+                      <span>KES {project.amountInvested.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
-                <span className="text-xs text-brand">Active</span>
-              </div>
-
-              <div className="mt-2 space-y-1">
-                <div className="flex justify-between text-[11px] text-gray-400">
-                  <span>Progress</span>
-                  <span>65%</span>
-                </div>
-                <div className="h-2 rounded-full bg-black/30 overflow-hidden">
-                  <div className="h-full w-[65%] bg-brand rounded-full" />
-                </div>
-              </div>
-            </summary>
-
-            <div className="mt-4 space-y-3">
-              <p className="text-sm text-gray-300">
-                Large-scale crop production focused on maize and beans with
-                seasonal returns and reinvestment plans.
-              </p>
-
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Amount Invested</span>
-                <span>KES 180,000</span>
-              </div>
-            </div>
-          </details>
-
-          {/* Completed Investment */}
-          <details className="rounded-2xl bg-white/5 p-4 border border-brand/10 shadow">
-            <summary className="cursor-pointer list-none">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold">Retail Shop Expansion</h3>
-                  <p className="text-xs text-gray-400">
-                    In charge: Sarah & John
-                  </p>
-                </div>
-                <span className="text-xs text-brand">Completed</span>
-              </div>
-            </summary>
-
-            <div className="mt-4 text-sm text-gray-300">
-              Successfully expanded retail space with full capital recovery and
-              profit distribution completed.
-            </div>
-          </details>
+              </details>
+            ))
+          )}
         </section>
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px]">
           <div className="bg-white rounded-2xl p-4 w-full max-w-md mx-4 space-y-4">
@@ -295,6 +359,16 @@ export default function Investment() {
                 }
                 className="w-full p-2 rounded-md bg-white/10 border border-brand/90 text-sm outline-brand"
                 required
+              />
+
+              <input
+                type="text"
+                placeholder="Return (optional, e.g., ~18%)"
+                value={newProject.return || ""}
+                onChange={(e) =>
+                  setNewProject({ ...newProject, return: e.target.value })
+                }
+                className="w-full p-2 rounded-md bg-white/10 border border-brand/90 text-sm outline-brand"
               />
 
               <textarea

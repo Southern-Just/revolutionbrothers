@@ -7,6 +7,7 @@ import {
   uuid,
   pgEnum,
   integer,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const userRole = pgEnum("user_role", [
@@ -25,7 +26,12 @@ export const transactionType = pgEnum("transaction_type", [
   "credit",
   "debit",
 ]);
-
+export const investmentStatus = pgEnum("investment_status", [
+  "suggested",
+  "approved",
+  "active",
+  "completed",
+]);
 /* ---------------- USERS ---------------- */
 
 export const users = pgTable("users", {
@@ -87,3 +93,36 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+/* ---------------- INVESTMENTS ---------------- */
+export const investments = pgTable("investments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  details: text("details"),
+  cost: varchar("cost", { length: 50 }), // e.g., "KES 220k"
+  time: varchar("time", { length: 50 }), // e.g., "24 months"
+  return: varchar("return", { length: 50 }), // e.g., "~18%"
+  suggesterId: uuid("suggester_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: investmentStatus("status").notNull().default("suggested"),
+  votes: integer("votes").notNull().default(0), // Computed from votes table
+  inCharge: uuid("in_charge").array(), // Array of user IDs (e.g., ["uuid1", "uuid2"])
+  progress: integer("progress"), // 0-100 for active investments
+  amountInvested: integer("amount_invested"), // In cents or smallest unit (e.g., KES)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/* ---------------- INVESTMENT VOTES ---------------- */
+export const investmentVotes = pgTable("investment_votes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  investmentId: uuid("investment_id")
+    .notNull()
+    .references(() => investments.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueVote: uniqueIndex("unique_vote").on(table.investmentId, table.userId), // Prevent duplicate votes
+}));

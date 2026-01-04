@@ -40,20 +40,22 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
         }`}
       >
         <div className="px-4 py-8 space-y-8 h-full relative">
-          <button
-            onClick={onClose}
-            className="text-sm text-end text-red-400 font-bold w-full hover:opacity-70 transition"
-          >
-            Close ✕
-          </button>
+          <div className="w-full flex justify-end">
+            <button
+              onClick={onClose}
+              className="text-md text-end text-red-400 p-2 px-3 bg-red-100 rounded-full w-max font-bold  hover:opacity-70 hover:text-red-600 transition"
+            >
+              ✕
+            </button>
+          </div>
 
           <nav className="flex flex-col space-y-6 px-4 text-lg">
             {[
-              ["My Finances", "/finances"],
               ["Members", "/members"],
-              ["Account", "/account"],
+              ["Profile", "/account"],
+              ["Report", "/finances"],
               ["Books", "/books"],
-              ["Settings", "/settings"],
+              // ["Settings", "/settings"],
             ].map(([label, href]) => (
               <Link
                 key={href}
@@ -68,7 +70,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
 
           <button
             onClick={handleLogout}
-            className="text-brand px-4 text-left hover:opacity-70 transition"
+            className="text-brand px-4 text-left hover:opacity-70 transition mt-6"
           >
             Logout
           </button>
