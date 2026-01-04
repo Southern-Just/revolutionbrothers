@@ -28,7 +28,7 @@ const Finances = () => {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push("/revolution?tab=deposit");
+    router.push("/?tab=deposit");
   };
 
 
