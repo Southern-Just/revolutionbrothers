@@ -279,7 +279,7 @@ export default function Investment() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xs uppercase tracking-wide text-gray-400 px-1">
+          <h2 className="text-xs uppercase tracking-wide text-brand bg-gray-200 rounded-2xl w-max  px-4 py-2">
             Suggested Projects (Voting)
           </h2>
 
@@ -289,7 +289,7 @@ export default function Investment() {
             suggestedProjects.map((project) => (
               <div
                 key={project.id}
-                className="rounded-2xl bg-white/5 p-4 border border-brand/20 shadow space-y-3"
+                className="rounded-2xl  p-4 bg-brand/2 border border-brand/20 shadow-xl shadow-brand/40 space-y-3"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -354,7 +354,7 @@ export default function Investment() {
                   {project.time && <span>Time: {project.time}</span>}
                 </div>
 
-                <div className="flex justify-between items-center text-xs">
+                <div className="flex justify-end gap-2 items-center text-xs">
                   <span className="text-gray-400">Votes</span>
                   <span className="text-brand font-semibold">{project.votes}</span>
                 </div>
@@ -364,7 +364,7 @@ export default function Investment() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xs uppercase tracking-wide text-gray-400 px-1">
+          <h2 className="text-xs uppercase tracking-wide text-brand bg-gray-200 rounded-2xl w-max  px-4 py-2">
             Approved Investments
           </h2>
 
