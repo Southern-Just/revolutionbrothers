@@ -9,3 +9,11 @@ export function formatAmount(amount: number, smallScreen = false): string {
     minimumFractionDigits: 0,
   }).format(amount);
 }
+
+export const OFFICIAL_ROLES = ["chairperson", "secretary", "treasurer"] as const;
+
+export type OfficialRole = (typeof OFFICIAL_ROLES)[number];
+
+export function isOfficialRole(role: string): role is OfficialRole {
+  return OFFICIAL_ROLES.includes(role as OfficialRole);
+}

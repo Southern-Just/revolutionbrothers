@@ -6,6 +6,11 @@ import { users, userProfiles } from "@/lib/database/schema";
 import { eq, sql } from "drizzle-orm";
 import { getCurrentUser } from "./user.actions";
 
+import {
+  type OfficialRole,
+  isOfficialRole,
+} from "@/lib/utils/utils";
+
 /* ---------------- TYPES ---------------- */
 
 export type MemberDTO = {
@@ -28,6 +33,12 @@ export type MyProfile = {
 };
 
 export type UpdateUserProfileInput = Partial<MyProfile>;
+
+export type MembersResult = {
+  activeUserId: string;
+  officials: Partial<Record<OfficialRole, MemberDTO>>;
+  others: MemberDTO[];
+};
 
 /* ---------------- PROFILE ---------------- */
 
@@ -61,7 +72,9 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   };
 }
 
-export async function updateMyProfile(input: UpdateUserProfileInput) {
+export async function updateMyProfile(
+  input: UpdateUserProfileInput,
+): Promise<{ success: true }> {
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/");
 
@@ -70,14 +83,20 @@ export async function updateMyProfile(input: UpdateUserProfileInput) {
   if (email) {
     await db
       .update(users)
-      .set({ email: email.toLowerCase().trim(), updatedAt: new Date() })
+      .set({
+        email: email.toLowerCase().trim(),
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, currentUser.id));
   }
 
   if (role) {
     await db
       .update(users)
-      .set({ role, updatedAt: new Date() })
+      .set({
+        role: role as "chairperson" | "secretary" | "treasurer" | "member",
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, currentUser.id));
   }
 
@@ -90,7 +109,10 @@ export async function updateMyProfile(input: UpdateUserProfileInput) {
   if (existing.length) {
     await db
       .update(userProfiles)
-      .set({ ...profileData, updatedAt: new Date() })
+      .set({
+        ...profileData,
+        updatedAt: new Date(),
+      })
       .where(eq(userProfiles.userId, currentUser.id));
   } else {
     await db.insert(userProfiles).values({
@@ -104,10 +126,7 @@ export async function updateMyProfile(input: UpdateUserProfileInput) {
 
 /* ---------------- USERS ---------------- */
 
-export async function getAllUsers(): Promise<{
-  activeUserId: string;
-  members: MemberDTO[];
-}> {
+export async function getAllUsers(): Promise<MembersResult> {
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/");
 
@@ -123,20 +142,34 @@ export async function getAllUsers(): Promise<{
     .from(users)
     .leftJoin(userProfiles, eq(users.id, userProfiles.userId));
 
-  return {
-    activeUserId: currentUser.id,
-    members: rows.map((r) => ({
+  const officials: Partial<Record<OfficialRole, MemberDTO>> = {};
+  const others: MemberDTO[] = [];
+
+  for (const r of rows) {
+    const member: MemberDTO = {
       userId: r.userId,
       name: r.name,
       role: r.role,
       username: r.username ?? null,
       phone: r.phone ?? null,
       profileImage: r.profileImage ?? null,
-    })),
+    };
+
+    if (isOfficialRole(member.role)) {
+      officials[member.role] = member;
+    } else {
+      others.push(member);
+    }
+  }
+
+  return {
+    activeUserId: currentUser.id,
+    officials,
+    others,
   };
 }
 
 export async function getTreasurerPhone(): Promise<string | null> {
-  const { members } = await getAllUsers();
-  return members.find((m) => m.role === "treasurer")?.phone ?? null;
+  const { officials } = await getAllUsers();
+  return officials.treasurer?.phone ?? null;
 }
