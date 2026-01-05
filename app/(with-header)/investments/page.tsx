@@ -18,7 +18,6 @@ import { getAllUsers } from "@/lib/actions/user.systeme";
 interface NewProject {
   name: string;
   cost: string;
-
   time: string;
   details: string;
   return?: string;

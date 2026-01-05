@@ -4,11 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import {
-  signIn,
-  signUp,
-  resetPassword,
-} from "@/lib/actions/user.actions";
+import { signIn, signUp, resetPassword } from "@/lib/actions/user.actions";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -38,9 +34,7 @@ export default function AuthHero({ mode }: AuthHeroProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAuthSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleAuthSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -51,7 +45,11 @@ export default function AuthHero({ mode }: AuthHeroProps) {
           email: email.trim().toLowerCase(),
           password,
         });
-        toast.success("Welcome back");
+        toast.success("Welcome Sir 👋", {
+          className:
+            "px-4 py-2 max-w-max tracking-wide text-sm rounded-lg shadow-lg",
+          position: "top-right",
+        });
       } else {
         await signUp({
           email: email.trim().toLowerCase(),
@@ -64,8 +62,7 @@ export default function AuthHero({ mode }: AuthHeroProps) {
     } catch (err) {
       if (err instanceof Error) {
         if (err.message === "INVALID_PIN") setError("Invalid PIN");
-        else if (err.message === "USER_EXISTS")
-          setError("User already exists");
+        else if (err.message === "USER_EXISTS") setError("User already exists");
         else setError("Invalid email or password");
       } else {
         setError("Something went wrong");
@@ -75,9 +72,7 @@ export default function AuthHero({ mode }: AuthHeroProps) {
     }
   };
 
-  const handleForgotSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleForgotSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -106,12 +101,9 @@ export default function AuthHero({ mode }: AuthHeroProps) {
   return (
     <>
       <div className="grow">
-        <h1 className="text-4xl md:text-6xl font-bold mb-4">
-          Not Yet Uhuru
-        </h1>
+        <h1 className="text-4xl md:text-6xl font-bold mb-4">Not Yet Uhuru</h1>
         <p className="text-brand text-md mb-2 md:text-xl">
-          Our future is ours to shape; Redefine the financial G-A-M-E with
-          us
+          Our future is ours to shape; Redefine the financial G-A-M-E with us
         </p>
       </div>
 
@@ -146,11 +138,7 @@ export default function AuthHero({ mode }: AuthHeroProps) {
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                 >
                   <Image
-                    src={
-                      showPassword
-                        ? "/icons/eye-off.svg"
-                        : "/icons/eye.svg"
-                    }
+                    src={showPassword ? "/icons/eye-off.svg" : "/icons/eye.svg"}
                     width={20}
                     height={20}
                     alt="toggle password"
@@ -164,9 +152,7 @@ export default function AuthHero({ mode }: AuthHeroProps) {
                 maxLength={4}
                 value={pin}
                 onChange={(e) =>
-                  setPin(
-                    e.target.value.replace(/\D/g, "").slice(0, 4)
-                  )
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
                 }
                 placeholder="PIN"
                 className="w-18 rounded-xl border px-4 py-3 text-center"
@@ -188,11 +174,7 @@ export default function AuthHero({ mode }: AuthHeroProps) {
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
                 <Image
-                  src={
-                    showPassword
-                      ? "/icons/eye-off.svg"
-                      : "/icons/eye.svg"
-                  }
+                  src={showPassword ? "/icons/eye-off.svg" : "/icons/eye.svg"}
                   width={20}
                   height={20}
                   alt="toggle password"
@@ -261,21 +243,15 @@ export default function AuthHero({ mode }: AuthHeroProps) {
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input
-                type={
-                  showForgotPasswordVisibility ? "text" : "password"
-                }
+                type={showForgotPasswordVisibility ? "text" : "password"}
                 placeholder="New Password"
                 value={forgotPassword}
-                onChange={(e) =>
-                  setForgotPassword(e.target.value)
-                }
+                onChange={(e) => setForgotPassword(e.target.value)}
                 className="rounded-xl border px-4 py-3 pr-10 w-full"
               />
               <button
                 type="button"
-                onClick={() =>
-                  setShowForgotPasswordVisibility((v) => !v)
-                }
+                onClick={() => setShowForgotPasswordVisibility((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
                 <Image
@@ -297,9 +273,7 @@ export default function AuthHero({ mode }: AuthHeroProps) {
               maxLength={4}
               value={forgotPin}
               onChange={(e) =>
-                setForgotPin(
-                  e.target.value.replace(/\D/g, "").slice(0, 4)
-                )
+                setForgotPin(e.target.value.replace(/\D/g, "").slice(0, 4))
               }
               placeholder="PIN"
               className="w-18 rounded-xl border px-4 py-3 text-center"
