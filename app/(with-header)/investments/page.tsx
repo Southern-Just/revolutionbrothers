@@ -284,7 +284,7 @@ export default function Investment() {
           </h2>
 
           {suggestedProjects.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center">No suggested projects yet.</p>
+            <p className="text-gray-400 text-xs indent-8">No suggested projects yet.</p>
           ) : (
             suggestedProjects.map((project) => (
               <div
@@ -369,7 +369,7 @@ export default function Investment() {
           </h2>
 
           {approvedProjects.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center">No approved investments yet.</p>
+            <p className="text-gray-400 text-xs indent-8">No approved investments yet.</p>
           ) : (
             approvedProjects.map((project) => (
               <details

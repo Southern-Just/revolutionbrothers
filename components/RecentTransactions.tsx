@@ -185,17 +185,6 @@ export default function RecentTransactions() {
           )}
         </tbody>
       </table>
-      {/* {loading && (
-        <div className="animate-spin justify-center flex mx-auto w-full py-0">
-          <Image
-            src="/icons/loader1.svg"
-            alt="Loading"
-            width={82}
-            height={82}
-            className="animate-spin"
-          />
-        </div>
-      )} */}
     </div>
   );
 }
