@@ -478,7 +478,7 @@ export default function Investment() {
               />
               <div>
                 <p className="text-sm text-gray-400">Select another person in charge (optional):</p>
-                <div className="flex space-x-2 mt-2 overflow-x-auto">
+                <div className="flex space-x-2 mt-2 justify-center gap-2 overflow-x-auto">
                   {filteredUsers.map((user) => (
                     <button
                       key={user.userId}
