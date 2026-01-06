@@ -10,20 +10,43 @@ const Header = () => {
 
   return (
     <>
-      <div className="mb-0 w-full justify-between flex px-2 py-1">
-        <p className="text-brand indent-0.5 p-6 px-2" onClick={()=>{router.push("/")}}>Savings and investment co.</p>
-                <button
-          className="cursor-pointer text-xl"
-          onClick={() => {
-            setOpen(true);
-          }}
-        >
-          <Image src="/icons/hamburger-menu.svg" width={60} height={60} alt="hamburger"/>
-        </button>
-      </div>
-      <div>
+      <div className="mb-0 w-full justify-between flex px-2 pr-4 py-1">
+          <p
+            className="text-brand indent-0.5 p-4 px-2"
+            onClick={() => {
+              router.push("/");
+            }}
+          >
+            <span className="text-xl text-brand opacity-90 text-shadow-sm border p-0 pl-2 rounded-l-full border-r-0 text-shadow-blue-300">
+              Rb.{" "}
+            </span>
+            Savings and investment co.
+          </p>
+        <div className="flex justify-center gap-8">
+          <Image
+            src="/icons/bell.svg"
+            width={16}
+            height={16}
+            alt="notifications"
+            className="opacity-40"
+          />
 
+          <button
+            className="cursor-pointer text-xl"
+            onClick={() => {
+              setOpen(true);
+            }}
+          >
+            <Image
+              src="/icons/hamburger.svg"
+              width={32}
+              height={32}
+              alt="hamburger"
+            />
+          </button>
+        </div>
       </div>
+      <div></div>
       <Sidebar open={open} onClose={() => setOpen(false)} />
     </>
   );
