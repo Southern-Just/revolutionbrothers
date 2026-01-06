@@ -44,7 +44,7 @@ export type UpdateInvestmentInput = {
 };
 
 
-const MIN_VOTES_TO_APPROVE = 4;
+const MIN_VOTES_TO_APPROVE = 2;
 
 type UserRole = "chairperson" | "secretary" | "treasurer" | "member";
 
