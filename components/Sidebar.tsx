@@ -1,6 +1,7 @@
 "use client";
 import { getTermsPdf, logout } from "@/lib/actions/user.actions";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { downloadFile } from "@/lib/utils/downloadFile";
 
@@ -75,19 +76,31 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             Logout
           </button>
 
-          <footer className="absolute bottom-10 w-full p-4 space-y-6">
-            <Link href="/account" onClick={onClose}>
-              <p
-                onClick={async () => {
-                  const { file, filename } = await getTermsPdf();
-                  downloadFile(file, filename);
-                }}
-                className="text-lg cursor-pointer hover:opacity-70 transition"
-              >
-                Download Terms
-              </p>
-            </Link>
-
+          <footer className="absolute bottom-10 w-full p-3.5 space-y-2 mx-auto">
+            <div
+              className=""
+              onClick={async () => {
+                const { file, filename } = await getTermsPdf();
+                downloadFile(file, filename);
+              }}
+            >
+              <div className="w-full flex justify-center">
+                <Image
+                  src="/icons/download.svg"
+                  width={54}
+                  height={54}
+                  alt="download terms"
+                  className="mr-8 animate-bounce"
+                />
+              </div>
+              <Link href="/account" onClick={onClose}>
+                <p
+                  className="text-lg cursor-pointer hover:opacity-70 transition"
+                >
+                  Download Terms
+                </p>
+              </Link>
+            </div>
             <p className="text-gray-400 text-sm">
               &copy; 2025 Revolution Brothers. All rights reserved.
             </p>
