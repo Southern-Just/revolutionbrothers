@@ -54,7 +54,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
               ["Members", "/members"],
               ["Profile", "/account"],
               ["Report", "/finances"],
-              ["Books", "/books"],
+              ["Resources", "/books"],
               // ["Settings", "/settings"],
             ].map(([label, href]) => (
               <Link
