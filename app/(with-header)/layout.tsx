@@ -59,7 +59,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
             <div className="space-y-4 mt-4">
               <p className="text-xs">
                 Please use a <span className="text-xl text-red-200">*</span>mobile
-                screen and portrait mode only
+                screen and portrait mode
               </p>
               <p className="text-[9px] text-brand text-end">
                 Thanks for understanding, Tutashugulikia
