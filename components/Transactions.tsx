@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import React, { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import {
   getAllTransactions,
   getMyTransactions,
 } from "@/lib/actions/user.transactions";
-// import { uploadTransactionsCSV } from "@/lib/actions/admin.transactions";
+import { updateTransactionStatus, uploadTransactionsCSV } from "@/lib/actions/admin.transactions"; // Added uploadTransactionsCSV
 import { toast } from "sonner";
 
 interface Transaction {
@@ -45,14 +45,29 @@ const formatDateTime = (date: Date) =>
     minute: "2-digit",
   }).format(date);
 
-const CategoryBadge = ({ category }: { category: string }) => (
-  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-100">
-    <div className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-    <span className="text-[10px] sm:text-xs font-medium text-gray-700">
-      {category.charAt(0).toUpperCase() + category.slice(1)}
-    </span>
-  </div>
-);
+const CategoryBadge = ({ category }: { category: string }) => {
+  const getStatusStyles = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "bg-gray-200 text-gray-600 border-gray-200";
+      case "verified":
+        return "bg-green-100 text-green-800 border-green-300";
+      case "declined":
+        return "bg-red-100 text-red-800 border-red-300";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
+    }
+  };
+
+  return (
+    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${getStatusStyles(category)}`}>
+      <div className="w-1.5 h-1.5 rounded-full bg-current" />
+      <span className="text-[10px] sm:text-xs font-medium">
+        {category.charAt(0).toUpperCase() + category.slice(1)}
+      </span>
+    </div>
+  );
+};
 
 export default function Transactions({
   onClose,
@@ -63,6 +78,7 @@ export default function Transactions({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
   const isPersonalView = Boolean(userId);
   const isTreasurer = userRole === "treasurer";
@@ -166,20 +182,27 @@ export default function Transactions({
     link.click();
   };
 
-  // const handleUpload = (file: File) => {
-  //   const formData = new FormData();
-  //   formData.append("file", file);
+  const handleStatusUpdate = (transactionId: string, newStatus: "verified" | "declined") => {
+    startTransition(async () => {
+      try {
+        await updateTransactionStatus(transactionId, newStatus);
+        toast.success(`Transaction ${newStatus} successfully.`);
+        setSelectedTransactionId(null);
+        await loadTransactions();
+      } catch (error) {
+        toast.error("Failed to update transaction status.");
+        console.error(error);
+      }
+    });
+  };
 
-  //   startTransition(async () => {
-  //     try {
-  //       const res = await uploadTransactionsCSV(formData);
-  //       toast.success(`Uploaded ${res.count} transactions`);
-  //       await loadTransactions();
-  //     } catch {
-  //       toast.error("Upload failed");
-  //     }
-  //   });
-  // };
+  const handleRowClick = (transaction: Transaction) => {
+    if (isTreasurer && transaction.status === "pending") {
+      setSelectedTransactionId(
+        selectedTransactionId === transaction.id ? null : transaction.id
+      );
+    }
+  };
 
   if (loading) {
     return (
@@ -205,7 +228,7 @@ export default function Transactions({
       }`}
     >
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">
+        <h2 className="text-xl font-bold ml-4">
           {isPersonalView ? "My Transactions" : "All Transactions"}
         </h2>
         <button
@@ -264,42 +287,69 @@ export default function Transactions({
                       year: "numeric",
                     }
                   );
+              const isClickable = isTreasurer && t.status === "pending";
 
               return (
-                <tr
-                  key={t.id}
-                  className={isDebit ? "bg-red-50" : "bg-green-50"}
-                >
-                  {!isPersonalView && (
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {t.name}
+                <React.Fragment key={t.id}>
+                  <tr
+                    className={`${isDebit ? "bg-red-50" : "bg-green-50"} ${
+                      isClickable ? "cursor-pointer hover:bg-gray-100" : ""
+                    }`}
+                    onClick={() => handleRowClick(t)}
+                  >
+                    {!isPersonalView && (
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {t.name}
+                      </td>
+                    )}
+                    <td className="px-6 py-4">
+                      <span
+                        className={`text-sm font-semibold ${
+                          isDebit ? "text-red-600" : "text-green-600"
+                        }`}
+                      >
+                        {isDebit ? "-" : "+"} KSh {formatAmount(t.amount)}
+                      </span>
                     </td>
+                    <td className="px-6 py-4">
+                      <CategoryBadge category={t.status} />
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {formatDateTime(date)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {t.transactionCode}
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4">
+                      <CategoryBadge category={t.category} />
+                    </td>
+                    <td className="px-6 py-4 text-[9px] text-gray-400">
+                      {showMonth ? currentMonth : ""}
+                    </td>
+                  </tr>
+                  {selectedTransactionId === t.id && isTreasurer && t.status === "pending" && (
+                    <tr>
+                      <td colSpan={isPersonalView ? 6 : 7} className="px-6 py-2 bg-gray-50">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleStatusUpdate(t.id, "declined")}
+                            disabled={isPending}
+                            className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                          >
+                            Decline
+                          </button>
+                          <button
+                            onClick={() => handleStatusUpdate(t.id, "verified")}
+                            disabled={isPending}
+                            className="px-3 py-1 text-xs bg-brand text-white rounded hover:bg-green-600 disabled:opacity-50"
+                          >
+                            Verify
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                  <td className="px-6 py-4">
-                    <span
-                      className={`text-sm font-semibold ${
-                        isDebit ? "text-red-600" : "text-green-600"
-                      }`}
-                    >
-                      {isDebit ? "-" : "+"} KSh {formatAmount(t.amount)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <CategoryBadge category={t.status} />
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {formatDateTime(date)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {t.transactionCode}
-                  </td>
-                  <td className="hidden md:table-cell px-6 py-4">
-                    <CategoryBadge category={t.category} />
-                  </td>
-                  <td className="px-6 py-4 text-[9px] text-gray-400">
-                    {showMonth ? currentMonth : ""}
-                  </td>
-                </tr>
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -307,25 +357,36 @@ export default function Transactions({
       </div>
 
       <div className="flex justify-end mt-4 gap-8">
-        {/* {isTreasurer && !isPersonalView && (
-          <label className="px-4 py-2 rounded-lg bg-gray-700 text-white cursor-pointer">
+        {isTreasurer && !isPersonalView && (
+          <label className="px-4 py-2 rounded-full border bg-red-50 border-red-400 text-gray-500 cursor-pointer">
             {isPending ? "Uploading..." : "Upload CSV"}
             <input
               type="file"
               accept=".csv"
               hidden
               onChange={(e) => {
-     }}
+                const file = e.target.files?.[0];
+                if (file) {
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  startTransition(async () => {
+                    try {
+                      await uploadTransactionsCSV(formData);
+                      toast.success("CSV uploaded successfully.");
+                      await loadTransactions();
+                    } catch (error) {
+                      toast.error("Failed to upload CSV.");
+                      console.error(error);
+                    }
+                  });
+                }
+              }}
             />
           </label>
-        )} */}
-        <label className="px-4 py-2 rounded-lg bg-red-100 text-red-400 cursor-pointer">
-          <input type="file" accept=".csv" hidden />
-          Upload CSV
-        </label>
+        )}
         <button
           onClick={exportCSV}
-          className="px-4 py-2 rounded-lg bg-brand text-white hover:bg-brand/80"
+          className="px-4 py-2 rounded-full bg-green-50 border border-brand text-brand hover:bg-brand/80"
         >
           Download CSV
         </button>

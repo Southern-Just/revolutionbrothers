@@ -45,11 +45,6 @@ export default function AuthHero({ mode }: AuthHeroProps) {
           email: email.trim().toLowerCase(),
           password,
         });
-        toast.success("Welcome Sir 👋", {
-          className:
-            "px-4 py-2 max-w-max tracking-wide text-sm rounded-lg shadow-lg",
-          position: "top-right",
-        });
       } else {
         await signUp({
           email: email.trim().toLowerCase(),

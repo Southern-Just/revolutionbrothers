@@ -104,3 +104,22 @@ export async function uploadTransactionsCSV(formData: FormData) {
 
   return { success: true, count: transactionsToInsert.length };
 }
+
+export async function updateTransactionStatus(transactionId: string, status: "verified" | "declined") {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || currentUser.role !== "treasurer") {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  const [updated] = await db
+    .update(transactions)
+    .set({ status })
+    .where(eq(transactions.id, transactionId))
+    .returning();
+
+  if (!updated) {
+    throw new Error("TRANSACTION_NOT_FOUND");
+  }
+
+  return updated;
+}

@@ -18,15 +18,15 @@ const Header = () => {
             }}
           >
             <span className="text-xl text-brand opacity-90 text-shadow-sm border p-0 pl-2 rounded-l-full border-r-0 text-shadow-blue-300">
-              Rb.{" "}
+              Rb.
             </span>
             Savings and investment co.
           </p>
-        <div className="flex justify-center gap-8">
+        <div className="flex justify-center gap-2">
           <Image
             src="/icons/bell.svg"
-            width={16}
-            height={16}
+            width={14}
+            height={14}
             alt="notifications"
             className="opacity-40"
           />

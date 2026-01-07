@@ -124,7 +124,10 @@ export default function Revolution() {
               </div>
 
               {showAllTransactions && (
-                <Transactions onClose={() => setShowAllTransactions(false)} />
+                <Transactions
+                  onClose={() => setShowAllTransactions(false)}
+                  userRole={userProfile?.role}
+                />
               )}
 
               <RecentTransactions />

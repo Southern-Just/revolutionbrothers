@@ -23,6 +23,9 @@ export default function Members() {
   const [activeUserId, setActiveUserId] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const START_YEAR = 2025;
+  const currentYear = new Date().getFullYear();
+
   useEffect(() => {
     async function load(): Promise<void> {
       try {
@@ -56,15 +59,14 @@ export default function Members() {
     <div className="min-h-screen flex justify-center px-2">
       <div className="flex flex-col items-center space-y-4 py-3 w-full max-w-6xl">
         <h1 className="text-xl font-bold text-center p-2">
-          REVOLUTION BROTHERS Members :{" "}
+          REVOLUTION BROTHERS <br />Members :{" "}
           <span className="text-brand">KIKOSI</span>
         </h1>
 
         <p className="text-gray-400 text-lg text-center">
-          Officials 2025–2026
+          Officials {START_YEAR}–{currentYear}
         </p>
 
-        {/* -------- OFFICIALS -------- */}
         <div className="flex justify-center gap-6 mt-4 flex-wrap">
           {OFFICIAL_ROLES.map((role) => {
             const member = officials[role];
@@ -121,7 +123,6 @@ export default function Members() {
           })}
         </div>
 
-        {/* -------- MEMBERS -------- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-6 w-full justify-items-center">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (

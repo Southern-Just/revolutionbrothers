@@ -1,5 +1,6 @@
 "use client";
-import { getTermsPdf, logout } from "@/lib/actions/user.actions";
+import { useState, useEffect } from "react"; // Add useState and useEffect
+import { getTermsPdf, logout, getCurrentUser } from "@/lib/actions/user.actions"; // Import getCurrentUser
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,12 +13,35 @@ interface SidebarProps {
 
 const Sidebar = ({ open, onClose }: SidebarProps) => {
   const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null); // Track user role
+  const [loading, setLoading] = useState(true); // Prevent rendering until role is checked
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserRole(user?.role || null);
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+        setUserRole(null); // Default to null on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
 
   const handleLogout = async () => {
     await logout();
     onClose();
     router.replace("/sign-in");
   };
+
+  // Show loading state or nothing while checking (prevents flash)
+  if (loading) {
+    return null; // Or a minimal loading indicator if preferred
+  }
 
   return (
     <>
@@ -69,6 +93,19 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             ))}
           </nav>
 
+          {/* Conditionally render Secretary board link only for secretaries */}
+          {userRole === "secretary" && (
+            <Link href="/board" className="flex justify-center">
+              <Image
+                src="/icons/transaction.svg"
+                width={22}
+                height={22}
+                alt="secretary board"
+              />
+              <p className="text-gray-400 text-xs px-2 py-4">Secretary board</p>
+            </Link>
+          )}
+
           <button
             onClick={handleLogout}
             className="text-brand px-4 text-left hover:opacity-70 transition mt-6"
@@ -94,9 +131,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
                 />
               </div>
               <Link href="/account" onClick={onClose}>
-                <p
-                  className="text-lg cursor-pointer hover:opacity-70 transition"
-                >
+                <p className="text-lg cursor-pointer hover:opacity-70 transition">
                   Download Terms
                 </p>
               </Link>

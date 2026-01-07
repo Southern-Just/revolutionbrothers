@@ -263,7 +263,6 @@ export async function cleanupStalePendingTransactions() {
       )
     );
 }
-// ... existing code ...
 
 /* ---------------- MY TOTAL BALANCE ---------------- */
 
@@ -286,4 +285,3 @@ export async function getMyTotalBalance(): Promise<number> {
   return totalCredits - totalDebits;
 }
 
-// ... existing cleanup function ...

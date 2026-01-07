@@ -25,7 +25,7 @@ export type ResetPasswordInput = {
   newPassword: string;
 };
 
-const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
+const SESSION_DURATION = 15 * 60 * 1000;
 
 export async function signIn({ email, password }: SignInInput) {
   const normalizedEmail = email.toLowerCase().trim();
@@ -40,6 +40,8 @@ export async function signIn({ email, password }: SignInInput) {
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new Error("INVALID_CREDENTIALS");
+
+  await db.delete(sessions).where(eq(sessions.userId, user.id));
 
   const expiresAt = new Date(Date.now() + SESSION_DURATION);
 
@@ -61,6 +63,71 @@ export async function signIn({ email, password }: SignInInput) {
   });
 
   return { success: true };
+}
+
+export async function getCurrentUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("rb_session")?.value;
+  if (!token) return null;
+
+  const [result] = await db
+    .select({ user: users })
+    .from(sessions)
+    .innerJoin(users, eq(users.id, sessions.userId))
+    .where(
+      and(
+        eq(sessions.sessionToken, token),
+        gt(sessions.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  return result?.user ?? null;
+}
+
+export async function touchSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("rb_session")?.value;
+  if (!token) return;
+
+  const newExpiry = new Date(Date.now() + SESSION_DURATION);
+
+  const [session] = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.sessionToken, token),
+        gt(sessions.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  if (!session) return;
+
+  await db
+    .update(sessions)
+    .set({ expiresAt: newExpiry })
+    .where(eq(sessions.id, session.id));
+
+  cookieStore.set("rb_session", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    expires: newExpiry,
+    path: "/",
+  });
+}
+
+export async function logout() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("rb_session")?.value;
+
+  if (token) {
+    await db.delete(sessions).where(eq(sessions.sessionToken, token));
+  }
+
+  cookieStore.delete("rb_session");
 }
 
 export async function signUp({ email, password, pin }: SignUpInput) {
@@ -127,38 +194,6 @@ export async function resetPassword({
   await db.delete(sessions).where(eq(sessions.userId, user.id));
 
   return { success: true };
-}
-
-export async function logout() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("rb_session")?.value;
-
-  if (token) {
-    await db.delete(sessions).where(eq(sessions.sessionToken, token));
-    cookieStore.delete("rb_session");
-  }
-
-  return { success: true };
-}
-
-export async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("rb_session")?.value;
-  if (!token) return null;
-
-  const [result] = await db
-    .select({ user: users })
-    .from(sessions)
-    .innerJoin(users, eq(users.id, sessions.userId))
-    .where(
-      and(
-        eq(sessions.sessionToken, token),
-        gt(sessions.expiresAt, new Date())
-      )
-    )
-    .limit(1);
-
-  return result?.user ?? null;
 }
 
 export const getTermsPdf = async (): Promise<{
