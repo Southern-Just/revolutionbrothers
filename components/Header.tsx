@@ -17,9 +17,9 @@ const Header = () => {
               router.push("/");
             }}
           >
-            <span className="text-xl text-brand opacity-90 text-shadow-sm border p-0 pl-2 rounded-l-full border-r-0 text-shadow-blue-300">
+            {/* <span className="text-xl text-brand opacity-90 text-shadow-sm border p-0 pl-2 rounded-l-full border-r-0 text-shadow-blue-300">
               Rb.
-            </span>
+            </span> */}
             Savings and investment co.
           </p>
         <div className="flex justify-center gap-2">
