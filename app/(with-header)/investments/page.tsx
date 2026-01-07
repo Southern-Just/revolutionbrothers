@@ -294,7 +294,7 @@ export default function Investment() {
                   <div>
                     <h3 className="font-semibold">{project.name}</h3>
                     <p className="text-xs text-gray-400">
-                      Suggested by {project.suggester || "Unknown"}
+                      Proposed by {project.suggester || "Unknown"}
                     </p>
                     <p className="text-xs text-gray-400">
                       In charge: {getInChargeNames(project.inCharge, allUsers)}
