@@ -6,10 +6,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 
 import { getCurrentUser } from "@/lib/actions/user.actions";
-import {
-  getAllUsers,
-  updateUserProfile,
-} from "@/lib/actions/user.systeme";
+import { getAllUsers, updateUserProfile } from "@/lib/actions/user.systeme";
 
 type StoredFile = {
   name: string;
@@ -31,11 +28,7 @@ type Member = {
   profileImage: string | null;
 };
 
-const OFFICIAL_ROLES: UserRole[] = [
-  "secretary",
-  "treasurer",
-  "chairperson",
-];
+const OFFICIAL_ROLES: UserRole[] = ["secretary", "treasurer", "chairperson"];
 
 export default function Page() {
   const router = useRouter();
@@ -97,9 +90,7 @@ export default function Page() {
 
   if (loading) {
     return (
-      <main className="mx-auto mt-6 text-center text-gray-500">
-        Loading…
-      </main>
+      <main className="mx-auto mt-6 text-center text-gray-500">Loading…</main>
     );
   }
 
@@ -130,9 +121,7 @@ export default function Page() {
   }
 
   function assignRole(userId: string, role: UserRole) {
-    const currentSecretary = members.find(
-      (m) => m.role === "secretary",
-    );
+    const currentSecretary = members.find((m) => m.role === "secretary");
 
     if (
       role === "secretary" &&
@@ -144,13 +133,13 @@ export default function Page() {
     }
 
     performAssign(userId, role).catch(() =>
-      toast.error("Failed to update role"),
+      toast.error("Failed to update role")
     );
   }
 
   function handleReplaceFile(
     e: React.ChangeEvent<HTMLInputElement>,
-    target: "terms" | "minutes",
+    target: "terms" | "minutes"
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -194,9 +183,7 @@ export default function Page() {
     >
       {/* HEADER */}
       <div className="flex items-center justify-between px-4">
-        <h1 className="text-2xl font-semibold text-brand">
-          Secretary Board
-        </h1>
+        <h1 className="text-2xl font-semibold text-brand">Secretary Board</h1>
         <button
           onClick={handleClose}
           className="text-sm text-gray-500 hover:text-brand"
@@ -206,7 +193,7 @@ export default function Page() {
       </div>
 
       {/* ROLE ASSIGNMENT */}
-      <section className="rounded-2xl border bg-background p-4 shadow-sm">
+      <section className="rounded-2xl border border-gray-200 bg-background p-4 shadow-sm">
         <button
           onClick={() => setRolesOpen((v) => !v)}
           className="flex w-full items-center justify-between text-sm font-semibold"
@@ -217,7 +204,7 @@ export default function Page() {
 
         <div
           className={`overflow-hidden transition-all duration-300 ${
-            rolesOpen ? "max-h-[800px] opacity-100 mt-4" : "max-h-0 opacity-0"
+            rolesOpen ? "max-h-200 opacity-100 mt-4" : "max-h-0 opacity-0"
           }`}
         >
           {OFFICIAL_ROLES.map((role) => {
@@ -225,9 +212,7 @@ export default function Page() {
 
             return (
               <div key={role} className="space-y-2 mb-4">
-                <p className="text-sm capitalize font-medium">
-                  {role}
-                </p>
+                <p className="text-sm capitalize font-medium">{role}</p>
 
                 <div className="flex flex-wrap gap-3">
                   {members.map((m) => {
@@ -237,9 +222,7 @@ export default function Page() {
                       <button
                         key={m.userId}
                         disabled={disabled}
-                        onClick={() =>
-                          !disabled && assignRole(m.userId, role)
-                        }
+                        onClick={() => !disabled && assignRole(m.userId, role)}
                         className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
                           disabled
                             ? "cursor-not-allowed border-brand bg-brand/10 opacity-60"
@@ -265,31 +248,36 @@ export default function Page() {
       </section>
 
       {/* DOCUMENTS */}
+      {/* DOCUMENTS */}
       <section className="grid gap-4 md:grid-cols-2">
         {[
-          ["Terms & Conditions", terms, "terms"],
-          ["Meeting Minutes", minutes, "minutes"],
-        ].map(([label, file, key]) => (
-          <div
-            key={key}
-            className="rounded-2xl bg-background p-4 shadow-sm border"
-          >
-            <p className="text-sm font-semibold mb-2">{label}</p>
-            <p className="text-sm text-gray-600">
-              {file ? file.name : "No file uploaded"}
-            </p>
-            <label className="mt-3 inline-block text-sm text-brand cursor-pointer">
-              Replace file
-              <input
-                type="file"
-                className="hidden"
-                onChange={(e) =>
-                  handleReplaceFile(e, key as "terms" | "minutes")
-                }
-              />
-            </label>
-          </div>
-        ))}
+          ["Terms & Conditions", terms, "terms"] as const,
+          ["Meeting Minutes", minutes, "minutes"] as const,
+        ].map(([label, file, key]) => {
+          const storedFile: StoredFile | null = file; // ensure correct type
+
+          return (
+            <div
+              key={key}
+              className="rounded-2xl bg-background p-4 shadow-sm border"
+            >
+              <p className="text-sm font-semibold mb-2">{label}</p>
+              <p className="text-sm text-gray-600">
+                {storedFile ? storedFile.name : "No file uploaded"}
+              </p>
+              <label className="mt-3 inline-block text-sm text-brand cursor-pointer">
+                Replace file
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) =>
+                    handleReplaceFile(e, key as "terms" | "minutes")
+                  }
+                />
+              </label>
+            </div>
+          );
+        })}
       </section>
 
       {/* ADD NOTIFICATION */}
@@ -321,9 +309,7 @@ export default function Page() {
       {confirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-[90%] max-w-sm rounded-2xl bg-background p-6 space-y-4">
-            <p className="text-sm font-semibold">
-              Transfer Secretary Role?
-            </p>
+            <p className="text-sm font-semibold">Transfer Secretary Role?</p>
             <p className="text-sm text-gray-600">
               You will lose secretary access immediately.
             </p>
