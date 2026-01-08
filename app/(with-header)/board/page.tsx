@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 
-import { getCurrentUser } from "@/lib/actions/user.actions";
+import { getCurrentUser,  getTermsMeta, uploadTermsPdf } from "@/lib/actions/user.actions";
 import { getAllUsers, updateUserProfile } from "@/lib/actions/user.systeme";
 
 type StoredFile = {
@@ -55,15 +55,28 @@ export default function Page() {
   } | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const load = async () => {
       try {
         const user = await getCurrentUser();
+
         if (!user || user.role !== "secretary") {
           router.push("/");
           return;
         }
 
+        const meta = await getTermsMeta();
+        if (mounted && meta?.name) {
+          setTerms({
+            name: meta.name,
+            type: "application/pdf",
+          });
+        }
+
         const data = await getAllUsers();
+
+        if (!mounted) return;
 
         const merged: Member[] = [
           ...Object.values(data.officials).filter(Boolean),
@@ -81,11 +94,17 @@ export default function Page() {
       } catch {
         router.push("/");
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     load();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   if (loading) {
@@ -137,12 +156,23 @@ export default function Page() {
     );
   }
 
-  function handleReplaceFile(
+  async function handleReplaceFile(
     e: React.ChangeEvent<HTMLInputElement>,
     target: "terms" | "minutes"
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (target === "terms") {
+      if (file.type !== "application/pdf") {
+        toast.error("Terms must be a PDF");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      await uploadTermsPdf(formData);
+    }
 
     const payload = { name: file.name, type: file.type };
     target === "terms" ? setTerms(payload) : setMinutes(payload);
@@ -181,19 +211,68 @@ export default function Page() {
         closing ? "modal-slide-down" : ""
       }`}
     >
-      {/* HEADER */}
       <div className="flex items-center justify-between px-4">
         <h1 className="text-2xl font-semibold text-brand">Secretary Board</h1>
         <button
           onClick={handleClose}
-          className="text-sm text-gray-500 hover:text-brand"
+          className="text-sm text-gray-500 shadow shadow-gray-300 p-1 px-2 rounded-lg hover:text-brand"
         >
           Close
         </button>
       </div>
 
-      {/* ROLE ASSIGNMENT */}
-      <section className="rounded-2xl border border-gray-200 bg-background p-4 shadow-sm">
+      <section className="rounded-2xl border border-gray-300 bg-background p-4 shadow-sm space-y-3">
+        <p className="text-sm font-semibold">New Notification</p>
+        <input
+          value={draftTitle}
+          onChange={(e) => setDraftTitle(e.target.value)}
+          placeholder="Title (optional)"
+          className="w-full rounded-lg border border-brand/90 outline-brand px-3 py-2 text-sm"
+        />
+        <textarea
+          value={draftMessage}
+          onChange={(e) => setDraftMessage(e.target.value)}
+          placeholder="Message (optional)"
+          className="w-full rounded-lg border outline-brand border-brand/90 px-3 py-2 text-sm resize-none"
+        />
+        <div className="flex justify-end">
+          <button
+            onClick={addNotification}
+            className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white"
+          >
+            Publish
+          </button>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        {[
+          ["Meeting Minutes", minutes, "minutes"] as const,
+          ["Terms & Conditions", terms, "terms"] as const,
+        ].map(([label, file, key]) => (
+          <div
+            key={key}
+            className="rounded-2xl bg-background p-4 shadow-sm border border-gray-300"
+          >
+            <p className="text-sm font-semibold mb-2">{label}</p>
+            <p className="text-sm text-gray-600">
+              {file ? file.name : "No file uploaded"}
+            </p>
+            <label className="mt-3 inline-block text-sm text-brand cursor-pointer">
+              Replace file
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) =>
+                  handleReplaceFile(e, key as "terms" | "minutes")
+                }
+              />
+            </label>
+          </div>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-background p-4 shadow-sm mb-12">
         <button
           onClick={() => setRolesOpen((v) => !v)}
           className="flex w-full items-center justify-between text-sm font-semibold"
@@ -247,65 +326,6 @@ export default function Page() {
         </div>
       </section>
 
-      {/* DOCUMENTS */}
-      {/* DOCUMENTS */}
-      <section className="grid gap-4 md:grid-cols-2">
-        {[
-          ["Terms & Conditions", terms, "terms"] as const,
-          ["Meeting Minutes", minutes, "minutes"] as const,
-        ].map(([label, file, key]) => {
-          const storedFile: StoredFile | null = file; // ensure correct type
-
-          return (
-            <div
-              key={key}
-              className="rounded-2xl bg-background p-4 shadow-sm border"
-            >
-              <p className="text-sm font-semibold mb-2">{label}</p>
-              <p className="text-sm text-gray-600">
-                {storedFile ? storedFile.name : "No file uploaded"}
-              </p>
-              <label className="mt-3 inline-block text-sm text-brand cursor-pointer">
-                Replace file
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={(e) =>
-                    handleReplaceFile(e, key as "terms" | "minutes")
-                  }
-                />
-              </label>
-            </div>
-          );
-        })}
-      </section>
-
-      {/* ADD NOTIFICATION */}
-      <section className="rounded-2xl border bg-background p-4 shadow-sm space-y-3">
-        <p className="text-sm font-semibold">New Notification</p>
-        <input
-          value={draftTitle}
-          onChange={(e) => setDraftTitle(e.target.value)}
-          placeholder="Title (optional)"
-          className="w-full rounded-lg border px-3 py-2 text-sm"
-        />
-        <textarea
-          value={draftMessage}
-          onChange={(e) => setDraftMessage(e.target.value)}
-          placeholder="Message (optional)"
-          className="w-full rounded-lg border px-3 py-2 text-sm resize-none"
-        />
-        <div className="flex justify-end">
-          <button
-            onClick={addNotification}
-            className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white"
-          >
-            Publish
-          </button>
-        </div>
-      </section>
-
-      {/* CONFIRM MODAL */}
       {confirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-[90%] max-w-sm rounded-2xl bg-background p-6 space-y-4">

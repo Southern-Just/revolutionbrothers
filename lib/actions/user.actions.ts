@@ -27,6 +27,14 @@ export type ResetPasswordInput = {
 
 const SESSION_DURATION = 15 * 60 * 1000;
 
+/* ---------------- TERMS CONSTANTS (ADDED) ---------------- */
+
+const TERMS_DIR = path.join(process.cwd(), "private", "terms");
+const TERMS_FILE = "Revolution-Brothers-Constitution.pdf";
+const TERMS_META = "terms.meta.json";
+
+/* ---------------- INTERNAL ---------------- */
+
 async function ensureSecretary() {
   const [secretary] = await db
     .select({ id: users.id })
@@ -49,6 +57,8 @@ async function ensureSecretary() {
     .set({ role: "secretary" })
     .where(eq(users.id, oldest.id));
 }
+
+/* ---------------- AUTH ---------------- */
 
 export async function signIn({ email, password }: SignInInput) {
   const normalizedEmail = email.toLowerCase().trim();
@@ -237,24 +247,65 @@ export async function resetPassword({
   return { success: true };
 }
 
+/* ---------------- TERMS PDF (ENHANCED) ---------------- */
+
+export async function uploadTermsPdf(formData: FormData) {
+  await ensureSecretary();
+
+  const file = formData.get("file") as File;
+  if (!file || file.type !== "application/pdf") {
+    throw new Error("INVALID_FILE");
+  }
+
+  await fs.mkdir(TERMS_DIR, { recursive: true });
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  await fs.writeFile(
+    path.join(TERMS_DIR, TERMS_FILE),
+    buffer
+  );
+
+  await fs.writeFile(
+    path.join(TERMS_DIR, TERMS_META),
+    JSON.stringify({ name: file.name })
+  );
+}
+export async function getTermsMeta(): Promise<{ name: string } | null> {
+  try {
+    const metaPath = path.join(TERMS_DIR, TERMS_META);
+    const raw = await fs.readFile(metaPath, "utf8");
+    const parsed = JSON.parse(raw);
+
+    if (!parsed?.name) return null;
+
+    return { name: parsed.name };
+  } catch {
+    return null;
+  }
+}
+
 export const getTermsPdf = async (): Promise<{
   file: ArrayBuffer;
   filename: string;
 }> => {
-  const filePath = path.join(
-    process.cwd(),
-    "private",
-    "terms",
-    "Revolution-Brothers-Constitution.pdf"
-  );
-
+  const filePath = path.join(TERMS_DIR, TERMS_FILE);
   const buffer = await fs.readFile(filePath);
+
+  let filename = TERMS_FILE;
+
+  try {
+    const meta = JSON.parse(
+      await fs.readFile(path.join(TERMS_DIR, TERMS_META), "utf8")
+    );
+    if (meta?.name) filename = meta.name;
+  } catch {}
 
   return {
     file: buffer.buffer.slice(
       buffer.byteOffset,
       buffer.byteOffset + buffer.byteLength
     ),
-    filename: "Revolution-Brothers-Constitution.pdf",
+    filename,
   };
 };
