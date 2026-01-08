@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { getCurrentUser } from "@/lib/actions/user.actions"; // Import to check user role
+
+import { getCurrentUser } from "@/lib/actions/user.actions";
+import {
+  getAllUsers,
+  updateUserProfile,
+} from "@/lib/actions/user.systeme";
 
 type StoredFile = {
   name: string;
@@ -15,13 +20,32 @@ type Notification = {
   id: string;
   title?: string;
   message?: string;
-  editing?: boolean;
 };
+
+type UserRole = "secretary" | "treasurer" | "chairperson" | "member";
+
+type Member = {
+  userId: string;
+  name: string;
+  role: UserRole;
+  profileImage: string | null;
+};
+
+const OFFICIAL_ROLES: UserRole[] = [
+  "secretary",
+  "treasurer",
+  "chairperson",
+];
 
 export default function Page() {
   const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false); // Track if user is authorized
-  const [loading, setLoading] = useState(true); // Prevent rendering until check is done
+
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  const [members, setMembers] = useState<Member[]>([]);
+  const [activeUserId, setActiveUserId] = useState("");
 
   const [terms, setTerms] = useState<StoredFile | null>(null);
   const [minutes, setMinutes] = useState<StoredFile | null>(null);
@@ -30,64 +54,115 @@ export default function Page() {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
 
-  const [note, setNote] = useState("");
+  const [rolesOpen, setRolesOpen] = useState(false);
 
-  // Role check and redirect on component mount
+  const [confirm, setConfirm] = useState<{
+    userId: string;
+    role: UserRole;
+  } | null>(null);
+
   useEffect(() => {
-    const checkAccess = async () => {
+    const load = async () => {
       try {
         const user = await getCurrentUser();
-        if (user && user.role === "secretary") {
-          setIsAuthorized(true);
-        } else {
-          router.push("/"); // Redirect non-secretaries or unauthenticated users
+        if (!user || user.role !== "secretary") {
+          router.push("/");
+          return;
         }
-      } catch (error) {
-        console.error("Error checking user role:", error);
-        router.push("/"); // Redirect on error
+
+        const data = await getAllUsers();
+
+        const merged: Member[] = [
+          ...Object.values(data.officials).filter(Boolean),
+          ...data.others,
+        ].map((u) => ({
+          userId: u.userId,
+          name: u.name,
+          role: u.role as UserRole,
+          profileImage: u.profileImage,
+        }));
+
+        setMembers(merged);
+        setActiveUserId(data.activeUserId);
+        setAuthorized(true);
+      } catch {
+        router.push("/");
       } finally {
         setLoading(false);
       }
     };
 
-    checkAccess();
+    load();
   }, [router]);
 
-  // Show loading state while checking (prevents flash of content)
   if (loading) {
     return (
-      <main className="mx-auto mt-4 w-[94%] max-w-4xl">
-        <p className="text-center text-gray-500">Loading...</p>
+      <main className="mx-auto mt-6 text-center text-gray-500">
+        Loading…
       </main>
     );
   }
 
-  // If not authorized, don't render anything (though redirect should handle it)
-  if (!isAuthorized) {
-    return null;
+  if (!authorized) return null;
+
+  async function performAssign(userId: string, role: UserRole) {
+    await updateUserProfile({ userId, role });
+    toast.success("Role updated");
+
+    if (role === "secretary" && userId !== activeUserId) {
+      handleClose();
+      return;
+    }
+
+    const refreshed = await getAllUsers();
+    const merged: Member[] = [
+      ...Object.values(refreshed.officials).filter(Boolean),
+      ...refreshed.others,
+    ].map((u) => ({
+      userId: u.userId,
+      name: u.name,
+      role: u.role as UserRole,
+      profileImage: u.profileImage,
+    }));
+
+    setMembers(merged);
+    setActiveUserId(refreshed.activeUserId);
   }
 
-  /* ---------------- FILE HANDLERS ---------------- */
+  function assignRole(userId: string, role: UserRole) {
+    const currentSecretary = members.find(
+      (m) => m.role === "secretary",
+    );
+
+    if (
+      role === "secretary" &&
+      currentSecretary?.userId === activeUserId &&
+      userId !== activeUserId
+    ) {
+      setConfirm({ userId, role });
+      return;
+    }
+
+    performAssign(userId, role).catch(() =>
+      toast.error("Failed to update role"),
+    );
+  }
 
   function handleReplaceFile(
     e: React.ChangeEvent<HTMLInputElement>,
-    target: "terms" | "minutes"
+    target: "terms" | "minutes",
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const payload = { name: file.name, type: file.type };
+    target === "terms" ? setTerms(payload) : setMinutes(payload);
 
-    if (target === "terms") setTerms(payload);
-    if (target === "minutes") setMinutes(payload);
-
-    toast.success(`${target === "terms" ? "Terms" : "Minutes"} updated`);
+    toast.success("File updated");
     e.target.value = "";
   }
 
-  /* ---------------- NOTIFICATIONS ---------------- */
-
-  function addNotificationFromDraft() {
+  function addNotification() {
     if (!draftTitle && !draftMessage) {
       toast.error("Notification cannot be empty");
       return;
@@ -106,202 +181,172 @@ export default function Page() {
     setDraftMessage("");
   }
 
-  function updateNotification(
-    id: string,
-    field: "title" | "message",
-    value: string
-  ) {
-    setNotifications((n) =>
-      n.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
-  }
-
-  function toggleEdit(id: string) {
-    setNotifications((n) =>
-      n.map((item) =>
-        item.id === id ? { ...item, editing: !item.editing } : item
-      )
-    );
-  }
-
-  function deleteNotification(id: string) {
-    setNotifications((n) => n.filter((item) => item.id !== id));
-  }
-
-  /* ---------------- NOTES ---------------- */
-
-  function saveNote() {
-    toast.success("Note saved");
-  }
-
-  function noteToNotification() {
-    if (!note.trim()) {
-      toast.error("Note is empty");
-      return;
-    }
-
-    setNotifications((n) => [
-      {
-        id: crypto.randomUUID(),
-        message: note,
-      },
-      ...n,
-    ]);
-
-    setNote("");
-    toast.success("Note added as notification");
+  function handleClose() {
+    setClosing(true);
+    setTimeout(() => router.push("/"), 500);
   }
 
   return (
-    <main className="mx-auto mt-4 w-[94%] max-w-4xl space-y-6">
-      <h1 className="text-2xl font-semibold text-brand text-start ml-4">
-        Secretary Board
-      </h1>
+    <main
+      className={`mx-auto mt-4 w-[94%] max-w-4xl space-y-6 ${
+        closing ? "modal-slide-down" : ""
+      }`}
+    >
+      {/* HEADER */}
+      <div className="flex items-center justify-between px-4">
+        <h1 className="text-2xl font-semibold text-brand">
+          Secretary Board
+        </h1>
+        <button
+          onClick={handleClose}
+          className="text-sm text-gray-500 hover:text-brand"
+        >
+          Close
+        </button>
+      </div>
 
-      {/* DOCUMENTS */}
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl bg-background p-4 shadow-sm shadow-gray-300">
-          <p className="text-sm font-semibold mb-2">Terms & Conditions</p>
+      {/* ROLE ASSIGNMENT */}
+      <section className="rounded-2xl border bg-background p-4 shadow-sm">
+        <button
+          onClick={() => setRolesOpen((v) => !v)}
+          className="flex w-full items-center justify-between text-sm font-semibold"
+        >
+          Role Assignment
+          <span>{rolesOpen ? "−" : "+"}</span>
+        </button>
 
-          {terms ? (
-            <p className="text-sm text-gray-600 truncate">{terms.name}</p>
-          ) : (
-            <p className="text-sm text-gray-400">No file uploaded</p>
-          )}
+        <div
+          className={`overflow-hidden transition-all duration-300 ${
+            rolesOpen ? "max-h-[800px] opacity-100 mt-4" : "max-h-0 opacity-0"
+          }`}
+        >
+          {OFFICIAL_ROLES.map((role) => {
+            const current = members.find((m) => m.role === role);
 
-          <label className="mt-3 inline-block text-sm text-brand cursor-pointer">
-            Replace file
-            <input
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(e) => handleReplaceFile(e, "terms")}
-            />
-          </label>
-        </div>
+            return (
+              <div key={role} className="space-y-2 mb-4">
+                <p className="text-sm capitalize font-medium">
+                  {role}
+                </p>
 
-        <div className="rounded-2xl bg-background p-4 shadow-sm border border-gray-200">
-          <p className="text-sm font-semibold mb-2">Meeting Minutes</p>
+                <div className="flex flex-wrap gap-3">
+                  {members.map((m) => {
+                    const disabled = current?.userId === m.userId;
 
-          {minutes ? (
-            <p className="text-sm text-gray-600 truncate">{minutes.name}</p>
-          ) : (
-            <p className="text-sm text-gray-400">No file uploaded</p>
-          )}
-
-          <label className="mt-3 inline-block text-sm text-brand cursor-pointer">
-            Replace file
-            <input
-              type="file"
-              accept=".pdf,.docx"
-              className="hidden"
-              onChange={(e) => handleReplaceFile(e, "minutes")}
-            />
-          </label>
+                    return (
+                      <button
+                        key={m.userId}
+                        disabled={disabled}
+                        onClick={() =>
+                          !disabled && assignRole(m.userId, role)
+                        }
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                          disabled
+                            ? "cursor-not-allowed border-brand bg-brand/10 opacity-60"
+                            : "hover:border-brand"
+                        }`}
+                      >
+                        <Image
+                          src={m.profileImage || "/avatar.png"}
+                          alt={m.name}
+                          width={28}
+                          height={28}
+                          className="rounded-full"
+                        />
+                        <span>{m.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* ADD NOTIFICATION */}
-      <section className="rounded-2xl border border-gray-200 bg-background p-4 shadow-sm space-y-3">
-        <p className="text-sm font-semibold">New Notification</p>
+      {/* DOCUMENTS */}
+      <section className="grid gap-4 md:grid-cols-2">
+        {[
+          ["Terms & Conditions", terms, "terms"],
+          ["Meeting Minutes", minutes, "minutes"],
+        ].map(([label, file, key]) => (
+          <div
+            key={key}
+            className="rounded-2xl bg-background p-4 shadow-sm border"
+          >
+            <p className="text-sm font-semibold mb-2">{label}</p>
+            <p className="text-sm text-gray-600">
+              {file ? file.name : "No file uploaded"}
+            </p>
+            <label className="mt-3 inline-block text-sm text-brand cursor-pointer">
+              Replace file
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) =>
+                  handleReplaceFile(e, key as "terms" | "minutes")
+                }
+              />
+            </label>
+          </div>
+        ))}
+      </section>
 
+      {/* ADD NOTIFICATION */}
+      <section className="rounded-2xl border bg-background p-4 shadow-sm space-y-3">
+        <p className="text-sm font-semibold">New Notification</p>
         <input
           value={draftTitle}
           onChange={(e) => setDraftTitle(e.target.value)}
           placeholder="Title (optional)"
-          className="w-full rounded-lg border border-gray-400 outline-none px-3 py-2 text-sm"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
         />
-
         <textarea
           value={draftMessage}
           onChange={(e) => setDraftMessage(e.target.value)}
           placeholder="Message (optional)"
-          className="w-full rounded-lg border border-gray-400 outline-none px-3 py-2 text-sm resize-none"
+          className="w-full rounded-lg border px-3 py-2 text-sm resize-none"
         />
         <div className="flex justify-end">
           <button
-            onClick={addNotificationFromDraft}
-            className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white "
+            onClick={addNotification}
+            className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white"
           >
             Publish
           </button>
         </div>
       </section>
 
-      {/* NOTIFICATIONS LIST */}
-      <section className="space-y-3">
-        {notifications.map((n) => (
-          <div
-            key={n.id}
-            className="rounded-2xl border bg-background p-4 shadow-sm space-y-2"
-          >
-            {n.editing ? (
-              <>
-                <input
-                  value={n.title || ""}
-                  onChange={(e) =>
-                    updateNotification(n.id, "title", e.target.value)
-                  }
-                  className="w-full rounded border px-2 py-1 text-sm"
-                />
-                <textarea
-                  value={n.message || ""}
-                  onChange={(e) =>
-                    updateNotification(n.id, "message", e.target.value)
-                  }
-                  className="w-full rounded border px-2 py-1 text-sm resize-none"
-                />
-              </>
-            ) : (
-              <>
-                {n.title && <p className="font-semibold">{n.title}</p>}
-                {n.message && (
-                  <p className="text-sm text-gray-600">{n.message}</p>
-                )}
-              </>
-            )}
-
-            <div className="flex gap-4 text-sm">
-              <button onClick={() => toggleEdit(n.id)} className="text-brand">
-                {n.editing ? "Done" : "Edit"}
+      {/* CONFIRM MODAL */}
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[90%] max-w-sm rounded-2xl bg-background p-6 space-y-4">
+            <p className="text-sm font-semibold">
+              Transfer Secretary Role?
+            </p>
+            <p className="text-sm text-gray-600">
+              You will lose secretary access immediately.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirm(null)}
+                className="rounded-lg border px-3 py-1 text-sm"
+              >
+                Cancel
               </button>
               <button
-                onClick={() => deleteNotification(n.id)}
-                className="text-red-500"
+                onClick={() => {
+                  performAssign(confirm.userId, confirm.role);
+                  setConfirm(null);
+                }}
+                className="rounded-lg bg-brand px-3 py-1 text-sm text-white"
               >
-                Delete
+                Confirm
               </button>
             </div>
           </div>
-        ))}
-      </section>
-
-      {/* NOTES */}
-      <section className="bg-background p-3 shadow-sm space-y-3">
-        <p className="text-sm font-semibold">Notes</p>
-
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Write notes here..."
-          className="w-full rounded-lg border outline-brand px-3 py-2 text-sm resize-none"
-        />
-
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={saveNote}
-            className="rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold"
-          >
-            Save
-          </button>
-          <button
-            onClick={noteToNotification}
-            className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white"
-          >
-            Make Notification
-          </button>
         </div>
-      </section>
+      )}
     </main>
   );
 }

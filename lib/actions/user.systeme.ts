@@ -34,6 +34,11 @@ export type MyProfile = {
 
 export type UpdateUserProfileInput = Partial<MyProfile>;
 
+export type UpdateAnyUserInput = {
+  userId: string;
+  role?: "chairperson" | "secretary" | "treasurer" | "member";
+};
+
 export type MembersResult = {
   activeUserId: string;
   officials: Partial<Record<OfficialRole, MemberDTO>>;
@@ -94,7 +99,7 @@ export async function updateMyProfile(
     await db
       .update(users)
       .set({
-        role: role as "chairperson" | "secretary" | "treasurer" | "member",
+        role,
         updatedAt: new Date(),
       })
       .where(eq(users.id, currentUser.id));
@@ -119,6 +124,36 @@ export async function updateMyProfile(
       userId: currentUser.id,
       ...profileData,
     });
+  }
+
+  return { success: true };
+}
+
+/* ---------------- ADMIN / SECRETARY ---------------- */
+
+export async function updateUserProfile(
+  input: UpdateAnyUserInput,
+): Promise<{ success: true }> {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || currentUser.role !== "secretary") redirect("/");
+
+  const { userId, role } = input;
+
+  if (role) {
+    if (role === "secretary") {
+      await db
+        .update(users)
+        .set({ role: "member", updatedAt: new Date() })
+        .where(eq(users.id, currentUser.id));
+    }
+
+    await db
+      .update(users)
+      .set({
+        role,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
   }
 
   return { success: true };

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { db } from "@/lib/database/db";
 import { users, sessions, userProfiles } from "@/lib/database/schema";
-import { eq, gt, and } from "drizzle-orm";
+import { eq, gt, and, asc } from "drizzle-orm";
 import fs from "fs/promises";
 import path from "path";
 
@@ -27,6 +27,29 @@ export type ResetPasswordInput = {
 
 const SESSION_DURATION = 15 * 60 * 1000;
 
+async function ensureSecretary() {
+  const [secretary] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.role, "secretary"))
+    .limit(1);
+
+  if (secretary) return;
+
+  const [oldest] = await db
+    .select({ id: users.id })
+    .from(users)
+    .orderBy(asc(users.createdAt))
+    .limit(1);
+
+  if (!oldest) return;
+
+  await db
+    .update(users)
+    .set({ role: "secretary" })
+    .where(eq(users.id, oldest.id));
+}
+
 export async function signIn({ email, password }: SignInInput) {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -41,14 +64,24 @@ export async function signIn({ email, password }: SignInInput) {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new Error("INVALID_CREDENTIALS");
 
-  await db.delete(sessions).where(eq(sessions.userId, user.id));
+  await ensureSecretary();
+
+  const [updatedUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
+
+  if (!updatedUser) throw new Error("INVALID_USER");
+
+  await db.delete(sessions).where(eq(sessions.userId, updatedUser.id));
 
   const expiresAt = new Date(Date.now() + SESSION_DURATION);
 
   const [session] = await db
     .insert(sessions)
     .values({
-      userId: user.id,
+      userId: updatedUser.id,
       expiresAt,
     })
     .returning({ token: sessions.sessionToken });
@@ -66,6 +99,8 @@ export async function signIn({ email, password }: SignInInput) {
 }
 
 export async function getCurrentUser() {
+  await ensureSecretary();
+
   const cookieStore = await cookies();
   const token = cookieStore.get("rb_session")?.value;
   if (!token) return null;
@@ -86,6 +121,8 @@ export async function getCurrentUser() {
 }
 
 export async function touchSession() {
+  await ensureSecretary();
+
   const cookieStore = await cookies();
   const token = cookieStore.get("rb_session")?.value;
   if (!token) return;
@@ -165,6 +202,8 @@ export async function signUp({ email, password, pin }: SignUpInput) {
     phone: "",
   });
 
+  await ensureSecretary();
+
   return { success: true };
 }
 
@@ -192,6 +231,8 @@ export async function resetPassword({
     .where(eq(users.id, user.id));
 
   await db.delete(sessions).where(eq(sessions.userId, user.id));
+
+  await ensureSecretary();
 
   return { success: true };
 }
