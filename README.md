@@ -1,5 +1,33 @@
 # SYSTEME FINANCIER
-Revolution Brothers savings system
 
-https://github.com/user-attachments/assets/109f07a8-695c-4d39-95e6-c1fc436bec4a
+**Revolution Brothers Savings System**
 
+---
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+
+[https://github.com/user-attachments/assets/109f07a8-695c-4d39-95e6-c1fc436bec4a](https://github.com/user-attachments/assets/109f07a8-695c-4d39-95e6-c1fc436bec4a)
+
+</td>
+<td width="50%" valign="top">
+
+### Test Logins
+
+| Role      | Username        | Password |
+| --------- | --------------- | -------- |
+| Guest     | `testguest`     | `001`    |
+| Secretary | `testSecretary` | `001#`   |
+| Chairman  | `testChairman`  | `001#`   |
+| Treasurer | `testTreasurer` | `001#`   |
+
+> These accounts are for demonstration and testing purposes only.
+> **Pin (temporary):** <strong>9095</strong>
+
+</td>
+</tr>
+</table>
+
+---
