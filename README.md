@@ -25,7 +25,9 @@
 
 > These accounts are for demonstration and testing purposes only.
 > **Pin (temporary):** <strong>9095</strong>
-
+## Device
+### Mobile Device 
+### Inspect (ratio (optimal) : 390 × 844  | 412 × 915)
 </td>
 </tr>
 </table>
