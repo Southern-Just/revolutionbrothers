@@ -17,12 +17,12 @@
   
 ### Test Logins
 
-| Role      | Username        | Password |
-| --------- | --------------- | -------- |
-| Guest     | `testguest`     | `001`    |
-| Secretary | `testSecretary` | `001#`   |
-| Chairman  | `testChairman`  | `001#`   |
-| Treasurer | `testTreasurer` | `001#`   |
+| Role      | Username (email)    | Password |
+| --------- | ------------------- | -------- |
+| Guest     | `test@guest.com`    | `001`    |
+| Secretary | `test@secretary.com`| `001#`   |
+| Chairman  | `test@chairman.com` | `001#`   |
+| Treasurer | `test@treasurer.com`| `001#`   |
 
 > These accounts are for demonstration and testing purposes only.
 > **Pin (temporary):** <strong>9095</strong>
