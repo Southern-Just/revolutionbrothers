@@ -26,6 +26,7 @@ export type TransactionDTO = {
 };
 
 export type CreateTransactionInput = {
+  userId?: string; // Added optional userId for treasurers
   month: string;
   amount: number;
   type: "credit" | "debit";
@@ -54,10 +55,17 @@ function requireAuth(user: Awaited<ReturnType<typeof getCurrentUser>>) {
 export async function createTransaction(input: CreateTransactionInput) {
   const currentUser = requireAuth(await getCurrentUser());
 
+  const userId = input.userId || currentUser.id;
+
+  // Authorization: Only treasurers can create for others, or users for themselves
+  if (currentUser.role !== "treasurer" && userId !== currentUser.id) {
+    throw new Error("Unauthorized");
+  }
+
   const [tx] = await db
     .insert(transactions)
     .values({
-      userId: currentUser.id,
+      userId,
       month: input.month,
       amount: input.amount,
       type: input.type,
