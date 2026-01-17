@@ -31,7 +31,7 @@ const formatDateTime = (date: Date) =>
     hour12: true,
   }).format(date);
 
-const removeSpecialCharacters = (text: string) => text.replace(/[^\w\s]/gi, "");
+// const removeSpecialCharacters = (text: string) => text.replace(/[^\w\s]/gi, "");
 
 const CategoryBadge = ({ category }: { category: string }) => (
   <div className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5">
@@ -149,7 +149,8 @@ export default function RecentTransactions() {
                 >
                   <td className="px-3 py-4 whitespace-nowrap sm:px-6">
                     <div className="text-sm font-medium text-gray-900">
-                      {removeSpecialCharacters(tx.name)}
+                      {/* {removeSpecialCharacters(tx.name)} */}
+                      {(tx.name)}
                     </div>
                   </td>
 

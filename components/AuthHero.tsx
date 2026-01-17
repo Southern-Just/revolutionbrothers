@@ -51,7 +51,9 @@ export default function AuthHero({ mode }: AuthHeroProps) {
           password,
           pin,
         });
-        toast.success("Account created");
+        toast.success("Account created. You can now sign in.");
+        router.push("/sign-in");
+        return;
       }
       router.push("/");
     } catch (err) {

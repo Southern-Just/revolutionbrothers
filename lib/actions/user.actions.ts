@@ -204,15 +204,15 @@ export async function signUp({ email, password, pin }: SignUpInput) {
     })
     .returning({ id: users.id });
 
-  await db.insert(userProfiles).values({
-    userId: user.id,
-    name: username,
-    username,
-    nationalId: "",
-    phone: "",
-  });
+  // await db.insert(userProfiles).values({
+  //   userId: user.id,
+  //   name: username,
+  //   username,
+  //   nationalId: "",
+  //   phone: "",
+  // });
 
-  await ensureSecretary();
+  // await ensureSecretary();
 
   return { success: true };
 }
