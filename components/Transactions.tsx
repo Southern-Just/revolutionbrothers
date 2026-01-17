@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   getAllTransactions,
   getMyTransactions,
+  createTransaction,
 } from "@/lib/actions/user.transactions";
 import { updateTransactionStatus, uploadTransactionsCSV } from "@/lib/actions/admin.transactions"; // Added uploadTransactionsCSV
 import { toast } from "sonner";
@@ -79,6 +80,16 @@ export default function Transactions({
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+  const [showAddRow, setShowAddRow] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({
+    name: "",
+    amount: "",
+    type: "credit" as "credit" | "debit",
+    status: "pending" as "pending" | "verified" | "declined",
+    category: "",
+    transactionCode: "",
+    occurredAt: "",
+  });
 
   const isPersonalView = Boolean(userId);
   const isTreasurer = userRole === "treasurer";
@@ -204,6 +215,55 @@ export default function Transactions({
     }
   };
 
+  const handleCreateTransaction = () => {
+    if (!newTransaction.amount || !newTransaction.transactionCode || !newTransaction.occurredAt) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    const occurredDate = new Date(newTransaction.occurredAt);
+    const month = occurredDate.toISOString().slice(0, 7); // YYYY-MM
+    startTransition(async () => {
+      try {
+        await createTransaction({
+          month,
+          amount: parseFloat(newTransaction.amount),
+          type: newTransaction.type,
+          category: newTransaction.category,
+          transactionCode: newTransaction.transactionCode,
+          occurredAt: occurredDate,
+        });
+        toast.success("Transaction created successfully.");
+        setNewTransaction({
+          name: "",
+          amount: "",
+          type: "credit",
+          status: "pending",
+          category: "",
+          transactionCode: "",
+          occurredAt: "",
+        });
+        setShowAddRow(false);
+        await loadTransactions();
+      } catch (error) {
+        toast.error("Failed to create transaction.");
+        console.error(error);
+      }
+    });
+  };
+
+  const handleCancel = () => {
+    setNewTransaction({
+      name: "",
+      amount: "",
+      type: "credit",
+      status: "pending",
+      category: "",
+      transactionCode: "",
+      occurredAt: "",
+    });
+    setShowAddRow(false);
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center">
@@ -223,7 +283,7 @@ export default function Transactions({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto bg-white p-4 ${
+      className={`fixed inset-0 z-50 bg-white p-4 ${
         closing ? "modal-slide-down" : "modal-slide-up"
       }`}
     >
@@ -239,7 +299,7 @@ export default function Transactions({
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-200px)] rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -352,9 +412,101 @@ export default function Transactions({
                 </React.Fragment>
               );
             })}
+            {showAddRow && isTreasurer && !isPersonalView && (
+              <tr className="bg-blue-50">
+                {!isPersonalView && (
+                  <td className="px-6 py-4">
+                    <input
+                      type="text"
+                      value={newTransaction.name}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, name: e.target.value })}
+                      placeholder="Name"
+                      className="w-full px-0 py-1 border-b outline-none text-sm"
+                    />
+                  </td>
+                )}
+                <td className="px-6 py-4">
+                  <input
+                    type="number"
+                    value={newTransaction.amount}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                    placeholder="Amount"
+                    className="w-full px-2 py-1 border rounded-lg text-sm"
+                  />
+                </td>
+                <td className="px-6 py-4">
+                  <select
+                    value={newTransaction.status}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, status: e.target.value as "pending" | "verified" | "declined" })}
+                    className="w-full px-1 py-1 border oultine-brand rounded-2xl text-sm"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="verified">Verified</option>
+                    <option value="declined">Declined</option>
+                  </select>
+                </td>
+                <td className="px-6 py-4">
+                  <input
+                    type="datetime-local"
+                    value={newTransaction.occurredAt}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, occurredAt: e.target.value })}
+                    className="w-full px-2 py-1 border outline-none rounded text-sm"
+                  />
+                </td>
+                <td className="px-6 py-4">
+                  <input
+                    type="text"
+                    value={newTransaction.transactionCode}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, transactionCode: e.target.value })}
+                    placeholder="Transaction Code"
+                    className="w-full px-1 py-1 border outline-none rounded text-sm"
+                  />
+                </td>
+                <td className="hidden md:table-cell px-6 py-4">
+                  <input
+                    type="text"
+                    value={newTransaction.category}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
+                    placeholder="Category"
+                    className="w-full px-2 py-1 border rounded text-sm"
+                  />
+                </td>
+                <td className="px-6 py-4 text-[9px] text-gray-400">
+                  {newTransaction.occurredAt ? new Date(newTransaction.occurredAt).toLocaleString("en-GB", { month: "long", year: "numeric" }) : ""}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      {isTreasurer && !isPersonalView && (
+        <div className="fixed bottom-4 left-4 right-4 flex justify-between items-center bg-white border-t border-gray-200 p-4">
+          <button
+            onClick={() => setShowAddRow(!showAddRow)}
+            className="px-4 py-2 bg-brand rounded-full text-white text-xl hover:bg-brand/80"
+          >
+            +
+          </button>
+          {showAddRow && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateTransaction}
+                disabled={isPending}
+                className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              >
+                Add
+              </button>
+              <button
+                onClick={handleCancel}
+                className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex justify-end mt-4 gap-8">
         {isTreasurer && !isPersonalView && (
@@ -386,11 +538,9 @@ export default function Transactions({
         )}
         <button
           onClick={exportCSV}
-          className="px-4 py-2 rounded-full bg-green-50 border border-brand text-brand hover:bg-brand/80"
-        >
+          className="px-4 py-2 rounded-full bg-green-50 border border-brand text-brand hover:bg-brand/80">
           Download CSV
         </button>
-      </div>
-    </div>
-  );
-}
+  </div>
+</div>
+); }

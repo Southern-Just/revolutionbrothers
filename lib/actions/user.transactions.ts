@@ -160,7 +160,7 @@ export async function getAllTransactions(): Promise<TransactionDTO[]> {
       createdAt: transactions.createdAt,
     })
     .from(transactions)
-    .leftJoin(users, eq(users.id, transactions.userId))
+    .innerJoin(users, eq(users.id, transactions.userId))
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
     .orderBy(desc(transactions.occurredAt));  // Include pending now
 }
@@ -185,7 +185,7 @@ export async function getRecentTransactionsAllUsers(limit = 6): Promise<Transact
       createdAt: transactions.createdAt,
     })
     .from(transactions)
-    .leftJoin(users, eq(users.id, transactions.userId))
+    .innerJoin(users, eq(users.id, transactions.userId))
     .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
     .orderBy(desc(transactions.occurredAt))  // Include pending now
     .limit(limit);
@@ -284,4 +284,3 @@ export async function getMyTotalBalance(): Promise<number> {
 
   return totalCredits - totalDebits;
 }
-
