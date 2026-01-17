@@ -24,17 +24,17 @@
 > These accounts are for demonstration and testing purposes only.
 > **Pin (temporary):** <strong>9095</strong>
 ## Device
-### Mobile Device 
-### Inspect (ratio (optimal) : 390 × 844  | 412 × 915)
+### . Mobile 
+### . Inspect (ratio (optimal) : 390 × 844  | 412 × 915)
 
 ---
 
 
 ## Tech stack
 
-* **Next Js** .
-*  * **Database**: PostgreSQL (Neon) with **Drizzle ORM**
-* **Image Processing**: **ImageKit** (image upload, optimization, and delivery) .
+> **Next Js** .
+> **Database**: PostgreSQL (Neon) with **Drizzle ORM**
+> **Image Processing**: **ImageKit** (image upload, optimization, and delivery) .
 * * **Deployment**: **Vercel**
 
 </td>
