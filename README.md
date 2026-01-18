@@ -19,35 +19,35 @@
 
 | Role      | Username (email)    | Password |
 | --------- | ------------------- | -------- |
-| Guest     | `test@guest.com`    | `001`    |
-| Secretary | `test@secretary.com`| `001#`   |
-| Chairman  | `test@chairman.com` | `001#`   |
-| Treasurer | `test@treasurer.com`| `001#`   |
+| Treasurer | `testreasurer@gmail.com`| `8000`   |
 
 > These accounts are for demonstration and testing purposes only.
 > **Pin (temporary):** <strong>9095</strong>
 ## Device
-### Mobile Device 
-### Inspect (ratio (optimal) : 390 × 844  | 412 × 915)
+### . Mobile 
+### . Inspect (ratio (optimal) : 390 × 844  | 412 × 915)
+
+---
+
+
+## Tech stack
+
+> **Next Js** .
+> **Database**: PostgreSQL (Neon) with **Drizzle ORM**
+> **Image Processing**: **ImageKit** (image upload, optimization, and delivery) .
+* * **Deployment**: **Vercel**
+
 </td>
 </tr>
+
 </table>
 
 ---
 
-## Tech stack
-
-* **Next Js** . * **Database**: PostgreSQL (Neon) with **Drizzle ORM**
-* **Image Processing**: **ImageKit** (image upload, optimization, and delivery) .* **Deployment**: **Vercel**
-
----
-
-## Getting Started
-
 ### Clone the project
 
 ```bash
-git clone (https://github.com/Southern-Just/revolutionbrothers.git)
+git clone https://github.com/Southern-Just/revolutionbrothers.git
 cd systeme-financier
 ```
 
