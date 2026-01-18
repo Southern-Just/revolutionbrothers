@@ -47,7 +47,7 @@
 ### Clone the project
 
 ```bash
-git clone (https://github.com/Southern-Just/revolutionbrothers.git)
+git clone https://github.com/Southern-Just/revolutionbrothers.git
 cd systeme-financier
 ```
 
