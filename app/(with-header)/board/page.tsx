@@ -5,8 +5,18 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 
-import { getCurrentUser,  getTermsMeta, uploadTermsPdf } from "@/lib/actions/user.actions";
-import { getAllUsers, updateUserProfile } from "@/lib/actions/user.systeme";
+import {
+  getCurrentUser,
+  getTermsMeta,
+  uploadTermsPdf,
+} from "@/lib/actions/user.actions";
+import {
+  getAllUsers,
+  updateUserProfile,
+} from "@/lib/actions/user.systeme";
+import {
+  createNotification,
+} from "@/lib/actions/notification.actions";
 
 type StoredFile = {
   name: string;
@@ -19,7 +29,11 @@ type Notification = {
   message?: string;
 };
 
-type UserRole = "secretary" | "treasurer" | "chairperson" | "member";
+type UserRole =
+  | "secretary"
+  | "treasurer"
+  | "chairperson"
+  | "member";
 
 type Member = {
   userId: string;
@@ -28,7 +42,11 @@ type Member = {
   profileImage: string | null;
 };
 
-const OFFICIAL_ROLES: UserRole[] = ["secretary", "treasurer", "chairperson"];
+const OFFICIAL_ROLES: UserRole[] = [
+  "secretary",
+  "treasurer",
+  "chairperson",
+];
 
 export default function Page() {
   const router = useRouter();
@@ -43,7 +61,8 @@ export default function Page() {
   const [terms, setTerms] = useState<StoredFile | null>(null);
   const [minutes, setMinutes] = useState<StoredFile | null>(null);
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] =
+    useState<Notification[]>([]);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
 
@@ -75,7 +94,6 @@ export default function Page() {
         }
 
         const data = await getAllUsers();
-
         if (!mounted) return;
 
         const merged: Member[] = [
@@ -94,9 +112,7 @@ export default function Page() {
       } catch {
         router.push("/");
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
@@ -109,13 +125,18 @@ export default function Page() {
 
   if (loading) {
     return (
-      <main className="mx-auto mt-6 text-center text-gray-500">Loading…</main>
+      <main className="mx-auto mt-6 text-center text-gray-500">
+        Loading…
+      </main>
     );
   }
 
   if (!authorized) return null;
 
-  async function performAssign(userId: string, role: UserRole) {
+  async function performAssign(
+    userId: string,
+    role: UserRole
+  ) {
     await updateUserProfile({ userId, role });
     toast.success("Role updated");
 
@@ -140,7 +161,9 @@ export default function Page() {
   }
 
   function assignRole(userId: string, role: UserRole) {
-    const currentSecretary = members.find((m) => m.role === "secretary");
+    const currentSecretary = members.find(
+      (m) => m.role === "secretary"
+    );
 
     if (
       role === "secretary" &&
@@ -174,18 +197,41 @@ export default function Page() {
       await uploadTermsPdf(formData);
     }
 
-    const payload = { name: file.name, type: file.type };
-    target === "terms" ? setTerms(payload) : setMinutes(payload);
+    await createNotification({
+      title:
+        target === "terms"
+          ? "Terms & Conditions Updated"
+          : "Meeting Minutes Updated",
+      message: file.name,
+      type:
+        target === "terms"
+          ? "terms_update"
+          : "minutes_update",
+    });
+
+    const payload = {
+      name: file.name,
+      type: file.type,
+    };
+    target === "terms"
+      ? setTerms(payload)
+      : setMinutes(payload);
 
     toast.success("File updated");
     e.target.value = "";
   }
 
-  function addNotification() {
+  async function addNotification() {
     if (!draftTitle && !draftMessage) {
       toast.error("Notification cannot be empty");
       return;
     }
+
+    await createNotification({
+      title: draftTitle || undefined,
+      message: draftMessage || undefined,
+      type: "announcement",
+    });
 
     setNotifications((n) => [
       {
@@ -212,7 +258,9 @@ export default function Page() {
       }`}
     >
       <div className="flex items-center justify-between px-4">
-        <h1 className="text-2xl font-semibold text-brand">Secretary Board</h1>
+        <h1 className="text-2xl font-semibold text-brand">
+          Secretary Board
+        </h1>
         <button
           onClick={handleClose}
           className="text-sm text-gray-500 shadow shadow-gray-300 p-1 px-2 rounded-lg hover:text-brand"
@@ -254,7 +302,9 @@ export default function Page() {
             key={key}
             className="rounded-2xl bg-background p-4 shadow-sm border border-gray-300"
           >
-            <p className="text-sm font-semibold mb-2">{label}</p>
+            <p className="text-sm font-semibold mb-2">
+              {label}
+            </p>
             <p className="text-sm text-gray-600">
               {file ? file.name : "No file uploaded"}
             </p>
@@ -264,7 +314,10 @@ export default function Page() {
                 type="file"
                 className="hidden"
                 onChange={(e) =>
-                  handleReplaceFile(e, key as "terms" | "minutes")
+                  handleReplaceFile(
+                    e,
+                    key as "terms" | "minutes"
+                  )
                 }
               />
             </label>
@@ -283,25 +336,35 @@ export default function Page() {
 
         <div
           className={`overflow-hidden transition-all duration-300 ${
-            rolesOpen ? "max-h-200 opacity-100 mt-4" : "max-h-0 opacity-0"
+            rolesOpen
+              ? "max-h-200 opacity-100 mt-4"
+              : "max-h-0 opacity-0"
           }`}
         >
           {OFFICIAL_ROLES.map((role) => {
-            const current = members.find((m) => m.role === role);
+            const current = members.find(
+              (m) => m.role === role
+            );
 
             return (
               <div key={role} className="space-y-2 mb-4">
-                <p className="text-sm capitalize font-medium">{role}</p>
+                <p className="text-sm capitalize font-medium">
+                  {role}
+                </p>
 
                 <div className="flex flex-wrap gap-3">
                   {members.map((m) => {
-                    const disabled = current?.userId === m.userId;
+                    const disabled =
+                      current?.userId === m.userId;
 
                     return (
                       <button
                         key={m.userId}
                         disabled={disabled}
-                        onClick={() => !disabled && assignRole(m.userId, role)}
+                        onClick={() =>
+                          !disabled &&
+                          assignRole(m.userId, role)
+                        }
                         className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
                           disabled
                             ? "cursor-not-allowed border-brand bg-brand/10 opacity-60"
@@ -309,7 +372,9 @@ export default function Page() {
                         }`}
                       >
                         <Image
-                          src={m.profileImage || "/avatar.png"}
+                          src={
+                            m.profileImage || "/avatar.png"
+                          }
                           alt={m.name}
                           width={28}
                           height={28}
@@ -329,7 +394,9 @@ export default function Page() {
       {confirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-[90%] max-w-sm rounded-2xl bg-background p-6 space-y-4">
-            <p className="text-sm font-semibold">Transfer Secretary Role?</p>
+            <p className="text-sm font-semibold">
+              Transfer Secretary Role?
+            </p>
             <p className="text-sm text-gray-600">
               You will lose secretary access immediately.
             </p>
@@ -342,7 +409,10 @@ export default function Page() {
               </button>
               <button
                 onClick={() => {
-                  performAssign(confirm.userId, confirm.role);
+                  performAssign(
+                    confirm.userId,
+                    confirm.role
+                  );
                   setConfirm(null);
                 }}
                 className="rounded-lg bg-brand px-3 py-1 text-sm text-white"

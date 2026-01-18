@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -31,6 +32,11 @@ export const investmentStatus = pgEnum("investment_status", [
   "approved",
   "active",
   "completed",
+]);
+export const notificationType = pgEnum("notification_type", [
+  "announcement",
+  "terms_update",
+  "minutes_update",
 ]);
 /* ---------------- USERS ---------------- */
 
@@ -126,3 +132,17 @@ export const investmentVotes = pgTable("investment_votes", {
 }, (table) => ({
   uniqueVote: uniqueIndex("unique_vote").on(table.investmentId, table.userId), // Prevent duplicate votes
 }));
+
+
+
+/* ---------------- NOTIFICATIONS ---------------- */
+
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title"),
+  message: text("message"),
+  type: varchar("type", { length: 30 }).notNull(),
+  readBy: uuid("read_by").array().notNull().default(sql`ARRAY[]::uuid[]`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+

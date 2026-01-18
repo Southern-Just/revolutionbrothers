@@ -127,6 +127,13 @@
       "when": 1768343875753,
       "tag": "0017_magenta_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1768777635680,
+      "tag": "0018_mean_hannibal_king",
+      "breakpoints": true
     }
   ]
 }
