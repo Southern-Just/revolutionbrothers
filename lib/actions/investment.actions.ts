@@ -43,6 +43,10 @@ export type UpdateInvestmentInput = {
   selectedUserId?: string;
 };
 
+export type ApproveInvestmentResponse = {
+  success: boolean;
+  message?: string;
+};
 
 const MIN_VOTES_TO_APPROVE = 2;
 
@@ -165,10 +169,10 @@ export async function voteOnInvestment({ investmentId }: VoteInput) {
 
 export async function approveInvestment({
   investmentId,
-}: ApproveInvestmentInput) {
+}: ApproveInvestmentInput): Promise<ApproveInvestmentResponse> {
   const currentUser = await getCurrentUser();
-  if (!currentUser) throw new Error("UNAUTHORIZED");
-  if (!OFFICIAL_ROLES.includes(currentUser.role as typeof OFFICIAL_ROLES[number])) throw new Error("FORBIDDEN");
+  if (!currentUser) return { success: false, message: "UNAUTHORIZED" };
+  if (!OFFICIAL_ROLES.includes(currentUser.role as typeof OFFICIAL_ROLES[number])) return { success: false, message: "FORBIDDEN" };
 
   const [investment] = await db
     .select({ status: investments.status })
@@ -176,15 +180,18 @@ export async function approveInvestment({
     .where(eq(investments.id, investmentId))
     .limit(1);
 
-  if (!investment) throw new Error("INVESTMENT_NOT_FOUND");
-  if (investment.status !== "suggested") throw new Error("INVALID_STATUS");
+  if (!investment) return { success: false, message: "INVESTMENT_NOT_FOUND" };
+  if (investment.status !== "suggested") return { success: false, message: "INVALID_STATUS" };
 
   const [voteCount] = await db
     .select({ count: sql<number>`count(*)` })
     .from(investmentVotes)
     .where(eq(investmentVotes.investmentId, investmentId));
 
-  if (voteCount.count < MIN_VOTES_TO_APPROVE) throw new Error("INSUFFICIENT_VOTES");
+  if (voteCount.count < MIN_VOTES_TO_APPROVE) {
+    const remainder = MIN_VOTES_TO_APPROVE - voteCount.count;
+    return { success: false, message: `Votes are not enough. ${remainder} remaining` };
+  }
 
   await db
     .update(investments)

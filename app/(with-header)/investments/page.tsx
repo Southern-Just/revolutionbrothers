@@ -72,7 +72,9 @@ export default function Investment() {
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [editingProject, setEditingProject] = useState<SuggestedProject | null>(null);
+  const [editingProject, setEditingProject] = useState<SuggestedProject | null>(
+    null,
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setIsPageVisible(true), 100);
@@ -127,7 +129,10 @@ export default function Investment() {
         time: project.time || "",
         details: project.details || "",
         return: project.return || "",
-        selectedUserId: project.inCharge && project.inCharge.length > 1 ? project.inCharge[1] : undefined,
+        selectedUserId:
+          project.inCharge && project.inCharge.length > 1
+            ? project.inCharge[1]
+            : undefined,
       });
     } else {
       setEditingProject(null);
@@ -143,29 +148,56 @@ export default function Investment() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const { name, cost, time, details, return: returnValue, selectedUserId } = newProject;
+    const {
+      name,
+      cost,
+      time,
+      details,
+      return: returnValue,
+      selectedUserId,
+    } = newProject;
     if (!name || !cost || !time || !details) return;
 
     try {
       if (editingProject) {
         // Assume updateInvestment is added to server actions
-        await updateInvestment({ id: editingProject.id, name, cost, time, details, return: returnValue, selectedUserId });
+        await updateInvestment({
+          id: editingProject.id,
+          name,
+          cost,
+          time,
+          details,
+          return: returnValue,
+          selectedUserId,
+        });
         toast.success("Investment updated successfully");
       } else {
-        await suggestInvestment({ name, cost, time, details, return: returnValue, selectedUserId });
+        await suggestInvestment({
+          name,
+          cost,
+          time,
+          details,
+          return: returnValue,
+          selectedUserId,
+        });
         toast.success("Investment suggested successfully");
       }
       await fetchInvestments();
       closeModal();
     } catch (err) {
       console.error(err);
-      toast.error(editingProject ? "Failed to update investment" : "Failed to suggest investment");
+      toast.error(
+        editingProject
+          ? "Failed to update investment"
+          : "Failed to suggest investment",
+      );
     }
   };
 
   const handleRemove = async () => {
     if (!editingProject) return;
-    if (!confirm("Are you sure you want to remove this suggested project?")) return;
+    if (!confirm("Are you sure you want to remove this suggested project?"))
+      return;
     try {
       await removeInvestment({ investmentId: editingProject.id });
       await fetchInvestments();
@@ -184,8 +216,8 @@ export default function Investment() {
         prev.map((project) =>
           project.id === id
             ? { ...project, votes: result.votes, hasVoted: result.hasVoted }
-            : project
-        )
+            : project,
+        ),
       );
     } catch (err) {
       console.error(err);
@@ -193,31 +225,50 @@ export default function Investment() {
     }
   };
 
+  // const handleApprove = async (id: string) => {
+  //   if (!currentUser) return;
+  //   try {
+  //     await approveInvestment({ investmentId: id });
+  //     await fetchInvestments();
+  //     toast.success("Investment approved");
+  //   } catch (err: unknown) {
+  //     console.error(err);
+  //     const message = err instanceof Error ? err.message : "Failed to approve investment";
+  //     toast.error(message);
+  //   }
+  // };
   const handleApprove = async (id: string) => {
     if (!currentUser) return;
-    try {
-      await approveInvestment({ investmentId: id });
+    const result = await approveInvestment({ investmentId: id });
+    if (result.success) {
       await fetchInvestments();
       toast.success("Investment approved");
-    } catch (err: unknown) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : "Failed to approve investment";
-      toast.error(message);
+    } else {
+      toast.error(result.message || "Failed to approve investment");
     }
   };
-
-  const getInChargeNames = (inCharge: string[] | null | undefined, allUsers: User[]): string => {
+  const getInChargeNames = (
+    inCharge: string[] | null | undefined,
+    allUsers: User[],
+  ): string => {
     if (!inCharge || inCharge.length === 0) return "TBD";
     return inCharge
-      .map(id => allUsers.find(user => user.userId === id)?.name || "Unknown")
+      .map(
+        (id) => allUsers.find((user) => user.userId === id)?.name || "Unknown",
+      )
       .join(" & ");
   };
 
-  const filteredUsers = allUsers.filter(user => user.userId !== currentUser?.id);
+  const filteredUsers = allUsers.filter(
+    (user) => user.userId !== currentUser?.id,
+  );
 
   const suggestedProjects = projects.filter((p) => p.status === "suggested");
-  const approvedProjects = projects.filter((p) =>
-    p.status === "approved" || p.status === "active" || p.status === "completed"
+  const approvedProjects = projects.filter(
+    (p) =>
+      p.status === "approved" ||
+      p.status === "active" ||
+      p.status === "completed",
   );
 
   if (loading) {
@@ -242,7 +293,10 @@ export default function Investment() {
       <main className="min-h-screen px-3 flex justify-center items-center">
         <div className="text-center">
           <p className="text-red-400">Kaalei, {error}</p>
-          <button onClick={fetchInvestments} className="mt-2 text-brand underline">
+          <button
+            onClick={fetchInvestments}
+            className="mt-2 text-brand underline"
+          >
             Retry
           </button>
         </div>
@@ -267,7 +321,8 @@ export default function Investment() {
         <section className="rounded-2xl bg-white/5 border border-brand/30 p-4 shadow space-y-3">
           <h2 className="font-semibold">Have an Investment Idea?</h2>
           <p className="text-sm text-gray-400">
-            Suggest a project to the group. Members can review, vote, and approve it.
+            Suggest a project to the group. Members can review, vote, and
+            approve it.
           </p>
           <button
             onClick={() => openModal()}
@@ -283,7 +338,9 @@ export default function Investment() {
           </h2>
 
           {suggestedProjects.length === 0 ? (
-            <p className="text-gray-400 text-xs indent-8">No suggested projects yet.</p>
+            <p className="text-gray-400 text-xs indent-8">
+              No suggested projects yet.
+            </p>
           ) : (
             suggestedProjects.map((project) => (
               <div
@@ -329,19 +386,25 @@ export default function Investment() {
                       ✓
                     </button>
 
-                    {currentUser && OFFICIAL_ROLES.includes(currentUser.role as "chairperson" | "secretary" | "treasurer") && (
-                      <button
-                        onClick={() => handleApprove(project.id)}
-                        title="Approve (Officials)"
-                        className={`w-7 h-7 rounded-full border flex items-center justify-center transition ${
-                          project.status === "approved"
-                            ? "bg-blue-500 text-white border-blue-500"
-                            : "border-blue-500 text-blue-500 hover:bg-blue-100"
-                        }`}
-                      >
-                        ✓✓
-                      </button>
-                    )}
+                    {currentUser &&
+                      OFFICIAL_ROLES.includes(
+                        currentUser.role as
+                          | "chairperson"
+                          | "secretary"
+                          | "treasurer",
+                      ) && (
+                        <button
+                          onClick={() => handleApprove(project.id)}
+                          title="Approve (Officials)"
+                          className={`w-7 h-7 rounded-full border flex items-center justify-center transition ${
+                            project.status === "approved"
+                              ? "bg-blue-500 text-white border-blue-500"
+                              : "border-blue-500 text-blue-500 hover:bg-blue-100"
+                          }`}
+                        >
+                          ✓✓
+                        </button>
+                      )}
                   </div>
                 </div>
 
@@ -355,7 +418,9 @@ export default function Investment() {
 
                 <div className="flex justify-end gap-2 items-center text-xs">
                   <span className="text-gray-400">Votes</span>
-                  <span className="text-brand font-semibold">{project.votes}</span>
+                  <span className="text-brand font-semibold">
+                    {project.votes}
+                  </span>
                 </div>
               </div>
             ))
@@ -368,7 +433,9 @@ export default function Investment() {
           </h2>
 
           {approvedProjects.length === 0 ? (
-            <p className="text-gray-400 text-xs indent-8">No approved investments yet.</p>
+            <p className="text-gray-400 text-xs indent-8">
+              No approved investments yet.
+            </p>
           ) : (
             approvedProjects.map((project) => (
               <details
@@ -384,10 +451,13 @@ export default function Investment() {
                     <div>
                       <h3 className="font-semibold">{project.name}</h3>
                       <p className="text-xs text-gray-400">
-                        In charge: {getInChargeNames(project.inCharge, allUsers)}
+                        In charge:{" "}
+                        {getInChargeNames(project.inCharge, allUsers)}
                       </p>
                     </div>
-                    <span className="text-xs text-brand capitalize">{project.status}</span>
+                    <span className="text-xs text-brand capitalize">
+                      {project.status}
+                    </span>
                   </div>
 
                   <div className="mt-2 space-y-1">
@@ -405,7 +475,9 @@ export default function Investment() {
                 </summary>
 
                 <div className="mt-4 space-y-3">
-                  <p className="text-sm text-gray-300">{project.details || ""}</p>
+                  <p className="text-sm text-gray-300">
+                    {project.details || ""}
+                  </p>
 
                   {project.amountInvested && (
                     <div className="flex justify-between text-sm">
@@ -476,15 +548,24 @@ export default function Investment() {
                 required
               />
               <div>
-                <p className="text-sm text-gray-400">Select another person in charge (optional):</p>
+                <p className="text-sm text-gray-400">
+                  Select another person in charge (optional):
+                </p>
                 <div className="flex space-x-2 mt-2 justify-center gap-2 overflow-x-auto">
                   {filteredUsers.map((user) => (
                     <button
                       key={user.userId}
                       type="button"
-                      onClick={() => setNewProject({ ...newProject, selectedUserId: user.userId })}
+                      onClick={() =>
+                        setNewProject({
+                          ...newProject,
+                          selectedUserId: user.userId,
+                        })
+                      }
                       className={`w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 ${
-                        newProject.selectedUserId === user.userId ? "border-brand" : "border-gray-300"
+                        newProject.selectedUserId === user.userId
+                          ? "border-brand"
+                          : "border-gray-300"
                       }`}
                     >
                       <Image

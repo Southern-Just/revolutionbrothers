@@ -1,0 +1,1 @@
+ALTER TABLE "notifications" ADD COLUMN "deleted_by" uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL;
