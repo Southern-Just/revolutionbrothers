@@ -13,8 +13,10 @@ import {
 } from "@/lib/actions/notification.actions";
 import { SwipeableNotification } from "./SwipeableNotification";
 
-
 type Notifications = Awaited<ReturnType<typeof getUserNotifications>>;
+
+const CACHE_INBOX = "notifications:inbox";
+const CACHE_BIN = "notifications:bin";
 
 const Header = () => {
   const router = useRouter();
@@ -24,7 +26,8 @@ const Header = () => {
   const [showBin, setShowBin] = useState(false);
 
   const [userId, setUserId] = useState("");
-  const [notifications, setNotifications] = useState<Notifications>([]);
+  const [notifications, setNotifications] =
+    useState<Notifications>([]);
   const [hasUnread, setHasUnread] = useState(false);
 
   useEffect(() => {
@@ -33,23 +36,64 @@ const Header = () => {
     });
   }, []);
 
+  function getCacheKey(bin: boolean) {
+    return bin ? CACHE_BIN : CACHE_INBOX;
+  }
+
+  function loadFromCache(bin: boolean): Notifications | null {
+    const raw = sessionStorage.getItem(getCacheKey(bin));
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw) as Notifications;
+      return parsed.map((n) => ({
+        ...n,
+        createdAt: new Date(n.createdAt),
+      }));
+    } catch {
+      return null;
+    }
+  }
+
+  function saveToCache(bin: boolean, data: Notifications) {
+    sessionStorage.setItem(
+      getCacheKey(bin),
+      JSON.stringify(data)
+    );
+  }
+
   async function loadNotifications(bin = showBin) {
     if (!userId) return;
+
+    const cached = loadFromCache(bin);
+    if (cached) {
+      setNotifications(cached);
+      setHasUnread(
+        cached.some((n) => !n.readBy.includes(userId))
+      );
+      return;
+    }
 
     try {
       const data = await getUserNotifications(bin);
       setNotifications(data);
       setHasUnread(data.some((n) => !n.readBy.includes(userId)));
+      saveToCache(bin, data);
     } catch {
       toast.error("Failed to load notifications");
     }
   }
 
+  function invalidateCache() {
+    sessionStorage.removeItem(CACHE_INBOX);
+    sessionStorage.removeItem(CACHE_BIN);
+  }
+
   return (
     <>
-      <div className="w-full flex justify-between px-2 pr-4 py-1">
+      <div className="flex w-full justify-between px-2 pr-4 py-1">
         <p
-          className="text-brand p-4 px-2 cursor-pointer"
+          className="cursor-pointer p-4 px-2 text-brand"
           onClick={() => router.push("/")}
         >
           Savings and investment co.
@@ -71,7 +115,7 @@ const Header = () => {
               className="opacity-40"
             />
             {hasUnread && (
-              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+              <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500" />
             )}
           </div>
 
@@ -89,8 +133,8 @@ const Header = () => {
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
 
       {notificationsOpen && (
-        <div className="fixed inset-0 z-50 bg-black/20 flex items-center justify-center">
-          <div className="w-[90%] max-w-md rounded-2xl bg-background backdrop-blur-sm p-4 space-y-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <div className="w-[90%] max-w-md rounded-2xl bg-background p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">
                 {showBin ? "Bin" : "Notifications"}
@@ -98,8 +142,9 @@ const Header = () => {
 
               <button
                 onClick={() => {
-                  setShowBin((v) => !v);
-                  loadNotifications(!showBin);
+                  const next = !showBin;
+                  setShowBin(next);
+                  loadNotifications(next);
                 }}
                 className="text-xs text-gray-500"
               >
@@ -117,16 +162,17 @@ const Header = () => {
                   createdAt={n.createdAt}
                   unread={!n.readBy.includes(userId)}
                   showBin={showBin}
-                  onDeleted={() =>
+                  onDeleted={() => {
                     setNotifications((prev) =>
                       prev.filter((x) => x.id !== n.id)
-                    )
-                  }
+                    );
+                    invalidateCache();
+                  }}
                 />
               ))}
 
               {notifications.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-6">
+                <p className="py-6 text-center text-xs text-gray-400">
                   No notifications
                 </p>
               )}
@@ -144,6 +190,7 @@ const Header = () => {
                 <button
                   onClick={async () => {
                     await markAllNotificationsRead();
+                    invalidateCache();
                     setHasUnread(false);
                     setNotificationsOpen(false);
                   }}

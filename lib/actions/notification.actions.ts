@@ -5,18 +5,10 @@ import { notifications } from "@/lib/database/schema";
 import { getCurrentUser } from "@/lib/actions/user.actions";
 import { desc, sql } from "drizzle-orm";
 
-/* ------------------------------------------------------------------ */
-/* TYPES                                                              */
-/* ------------------------------------------------------------------ */
-
 export type NotificationType =
   | "announcement"
   | "terms_update"
   | "minutes_update";
-
-/* ------------------------------------------------------------------ */
-/* CREATE                                                             */
-/* ------------------------------------------------------------------ */
 
 export async function createNotification(input: {
   title?: string;
@@ -35,18 +27,11 @@ export async function createNotification(input: {
   return created;
 }
 
-/* ------------------------------------------------------------------ */
-/* FETCH (Inbox / Bin)                                                 */
-/* ------------------------------------------------------------------ */
-
-export async function getUserNotifications(
-  includeDeleted: boolean = false
-) {
+export async function getUserNotifications(includeDeleted = false) {
   const user = await getCurrentUser();
   if (!user) return [];
 
   if (includeDeleted) {
-    // 🧺 BIN
     return db
       .select()
       .from(notifications)
@@ -54,17 +39,12 @@ export async function getUserNotifications(
       .orderBy(desc(notifications.createdAt));
   }
 
-  // 📥 INBOX
   return db
     .select()
     .from(notifications)
     .where(sql`NOT (${user.id} = ANY(${notifications.deletedBy}))`)
     .orderBy(desc(notifications.createdAt));
 }
-
-/* ------------------------------------------------------------------ */
-/* MARK ALL AS READ                                                    */
-/* ------------------------------------------------------------------ */
 
 export async function markAllNotificationsRead() {
   const user = await getCurrentUser();
@@ -78,10 +58,6 @@ export async function markAllNotificationsRead() {
   `);
 }
 
-/* ------------------------------------------------------------------ */
-/* DELETE (Move to Bin)                                                */
-/* ------------------------------------------------------------------ */
-
 export async function deleteNotification(notificationId: string) {
   const user = await getCurrentUser();
   if (!user) return;
@@ -94,31 +70,9 @@ export async function deleteNotification(notificationId: string) {
   `);
 }
 
-/* ------------------------------------------------------------------ */
-/* RESTORE FROM BIN                                                    */
-/* ------------------------------------------------------------------ */
-
-export async function restoreNotification(notificationId: string) {
-  const user = await getCurrentUser();
-  if (!user) return;
-
-  await db.execute(sql`
-    UPDATE notifications
-    SET deleted_by = array_remove(deleted_by, ${user.id})
-    WHERE id = ${notificationId}
-  `);
-}
-
-/* ------------------------------------------------------------------ */
-/* PERMANENT DELETE (optional / admin / cleanup job)                   */
-/* ------------------------------------------------------------------ */
-
-export async function permanentlyDeleteNotification(notificationId: string) {
-  const user = await getCurrentUser();
-  if (!user) return;
-
-  // Optional: restrict to admin roles if needed
-
+export async function permanentlyDeleteNotification(
+  notificationId: string
+) {
   await db
     .delete(notifications)
     .where(sql`${notifications.id} = ${notificationId}`);
