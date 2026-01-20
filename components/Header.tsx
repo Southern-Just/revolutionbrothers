@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Sidebar from "./Sidebar";
@@ -11,8 +11,8 @@ import {
   getUserNotifications,
   markAllNotificationsRead,
 } from "@/lib/actions/notification.actions";
-
 import { SwipeableNotification } from "./SwipeableNotification";
+
 
 type Notifications = Awaited<ReturnType<typeof getUserNotifications>>;
 
@@ -23,21 +23,9 @@ const Header = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showBin, setShowBin] = useState(false);
 
-  const [userId, setUserId] = useState<string>("");
+  const [userId, setUserId] = useState("");
   const [notifications, setNotifications] = useState<Notifications>([]);
   const [hasUnread, setHasUnread] = useState(false);
-
-  const refreshNotifications = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      const data = await getUserNotifications(showBin);
-      setNotifications(data);
-      setHasUnread(data.some((n) => !n.readBy.includes(userId)));
-    } catch {
-      toast.error("Failed to load notifications");
-    }
-  }, [userId, showBin]);
 
   useEffect(() => {
     getCurrentUser().then((user) => {
@@ -45,12 +33,17 @@ const Header = () => {
     });
   }, []);
 
-  useEffect(() => {
-    const run = async () => {
-      await refreshNotifications();
-    };
-    run();
-  }, [refreshNotifications]);
+  async function loadNotifications(bin = showBin) {
+    if (!userId) return;
+
+    try {
+      const data = await getUserNotifications(bin);
+      setNotifications(data);
+      setHasUnread(data.some((n) => !n.readBy.includes(userId)));
+    } catch {
+      toast.error("Failed to load notifications");
+    }
+  }
 
   return (
     <>
@@ -67,7 +60,7 @@ const Header = () => {
             className="relative cursor-pointer"
             onClick={() => {
               setNotificationsOpen(true);
-              refreshNotifications();
+              loadNotifications();
             }}
           >
             <Image
@@ -96,8 +89,8 @@ const Header = () => {
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
 
       {notificationsOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="w-[90%] max-w-md rounded-2xl bg-background p-4 space-y-3">
+        <div className="fixed inset-0 z-50 bg-black/20 flex items-center justify-center">
+          <div className="w-[90%] max-w-md rounded-2xl bg-background backdrop-blur-sm p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">
                 {showBin ? "Bin" : "Notifications"}
@@ -106,7 +99,7 @@ const Header = () => {
               <button
                 onClick={() => {
                   setShowBin((v) => !v);
-                  refreshNotifications();
+                  loadNotifications(!showBin);
                 }}
                 className="text-xs text-gray-500"
               >
@@ -123,6 +116,7 @@ const Header = () => {
                   message={n.message}
                   createdAt={n.createdAt}
                   unread={!n.readBy.includes(userId)}
+                  showBin={showBin}
                   onDeleted={() =>
                     setNotifications((prev) =>
                       prev.filter((x) => x.id !== n.id)

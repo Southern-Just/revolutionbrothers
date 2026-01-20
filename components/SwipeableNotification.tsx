@@ -11,6 +11,7 @@ type SwipeableNotificationProps = {
   message: string | null;
   createdAt: Date;
   unread: boolean;
+  showBin: boolean;
   onDeleted: () => void;
 };
 
@@ -26,43 +27,60 @@ export function SwipeableNotification({
   onDeleted,
 }: SwipeableNotificationProps) {
   const [offset, setOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
 
   const handlers = useSwipeable({
     onSwiping: (e) => {
       if (e.deltaX < 0) {
-        setOffset(Math.max(-e.deltaX * -1, FULL));
+        setDragging(true);
+        setOffset(Math.max(e.deltaX, FULL));
       }
     },
     onSwipedLeft: async (e) => {
+      setDragging(false);
+
       if (-e.deltaX > 120) {
         await deleteNotification(id);
         onDeleted();
         return;
       }
+
       setOffset(PARTIAL);
     },
     onSwipedRight: () => {
+      setDragging(false);
       setOffset(0);
     },
     trackMouse: true,
     preventScrollOnSwipe: true,
   });
 
+  const showDelete = offset < 0;
+
   return (
-    <div className="relative overflow-hidden rounded-lg">
-      <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-4 text-white text-sm">
+    <div className="relative overflow-hidden rounded-xl">
+      {/* Delete background */}
+      <div
+        className="absolute inset-0 flex items-center justify-end pr-4
+                   bg-red-500 text-white text-sm font-medium"
+        style={{
+          opacity: showDelete ? 1 : 0,
+          transition: "opacity 150ms ease-out",
+        }}
+      >
         Delete
       </div>
 
+      {/* Swipeable card */}
       <div
         {...handlers}
-        style={{
-          transform: `translateX(${offset}px)`,
-          transition: "transform 0.2s ease",
-        }}
-        className={`relative z-10 p-3 rounded-lg bg-background ${
+        className={`relative z-10 rounded-xl p-3 bg-background ${
           unread ? "bg-brand/10" : "bg-gray-50"
         }`}
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: dragging ? "none" : "transform 220ms ease-out",
+        }}
       >
         {title && <p className="font-medium">{title}</p>}
         {message && <p className="text-xs text-gray-600">{message}</p>}
