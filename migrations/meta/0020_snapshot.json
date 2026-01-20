@@ -1,6 +1,6 @@
 {
-  "id": "a6e1d0e4-8efb-4b40-a6e2-3ae07c9a60ab",
-  "prevId": "21d123f5-59eb-4aa1-bd58-9872a462041c",
+  "id": "ae8a4860-8502-47e4-9e01-bb1ab2841ac5",
+  "prevId": "a6e1d0e4-8efb-4b40-a6e2-3ae07c9a60ab",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -234,8 +234,7 @@
         },
         "type": {
           "name": "type",
-          "type": "notification_type",
-          "typeSchema": "public",
+          "type": "varchar(30)",
           "primaryKey": false,
           "notNull": true
         },

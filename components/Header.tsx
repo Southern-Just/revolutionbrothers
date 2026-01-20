@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Sidebar from "./Sidebar";
-
 import { toast } from "sonner";
 
 import { getCurrentUser } from "@/lib/actions/user.actions";
@@ -13,43 +12,45 @@ import {
   markAllNotificationsRead,
 } from "@/lib/actions/notification.actions";
 
+import { SwipeableNotification } from "./SwipeableNotification";
+
+type Notifications = Awaited<ReturnType<typeof getUserNotifications>>;
+
 const Header = () => {
   const router = useRouter();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [hasUnread, setHasUnread] = useState(false);
-  const [notifications, setNotifications] = useState<
-    Awaited<ReturnType<typeof getUserNotifications>>
-  >([]);
+  const [showBin, setShowBin] = useState(false);
+
   const [userId, setUserId] = useState<string>("");
+  const [notifications, setNotifications] = useState<Notifications>([]);
+  const [hasUnread, setHasUnread] = useState(false);
+
+  const refreshNotifications = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const data = await getUserNotifications(showBin);
+      setNotifications(data);
+      setHasUnread(data.some((n) => !n.readBy.includes(userId)));
+    } catch {
+      toast.error("Failed to load notifications");
+    }
+  }, [userId, showBin]);
 
   useEffect(() => {
-    getCurrentUser().then((u) => {
-      if (u) setUserId(u.id);
+    getCurrentUser().then((user) => {
+      if (user) setUserId(user.id);
     });
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
-
-    getUserNotifications()
-      .then((data) => {
-        setNotifications(data);
-        setHasUnread(data.some((n) => !n.readBy.includes(userId)));
-      })
-      .catch(() => {
-        toast.error("Failed to load notifications");
-      });
-  }, [userId]);
-
-  async function refreshNotifications() {
-    if (!userId) return;
-
-    const data = await getUserNotifications();
-    setNotifications(data);
-    setHasUnread(data.some((n) => !n.readBy.includes(userId)));
-  }
+    const run = async () => {
+      await refreshNotifications();
+    };
+    run();
+  }, [refreshNotifications]);
 
   return (
     <>
@@ -97,42 +98,66 @@ const Header = () => {
       {notificationsOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
           <div className="w-[90%] max-w-md rounded-2xl bg-background p-4 space-y-3">
-            <p className="text-sm font-semibold">Notifications</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">
+                {showBin ? "Bin" : "Notifications"}
+              </p>
 
-            {notifications.map((n) => {
-              const unread = !n.readBy.includes(userId);
-              return (
-                <div
+              <button
+                onClick={() => {
+                  setShowBin((v) => !v);
+                  refreshNotifications();
+                }}
+                className="text-xs text-gray-500"
+              >
+                {showBin ? "Inbox" : "Bin"}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <SwipeableNotification
                   key={n.id}
-                  className={`rounded-lg p-2 text-sm ${
-                    unread ? "bg-brand/10" : "bg-gray-50"
-                  }`}
-                >
-                  {n.title && <p className="font-medium">{n.title}</p>}
-                  {n.message && (
-                    <p className="text-xs text-gray-600">{n.message}</p>
-                  )}
-                </div>
-              );
-            })}
+                  id={n.id}
+                  title={n.title}
+                  message={n.message}
+                  createdAt={n.createdAt}
+                  unread={!n.readBy.includes(userId)}
+                  onDeleted={() =>
+                    setNotifications((prev) =>
+                      prev.filter((x) => x.id !== n.id)
+                    )
+                  }
+                />
+              ))}
 
-            <div className="flex justify-end gap-2">
+              {notifications.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-6">
+                  No notifications
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setNotificationsOpen(false)}
                 className="text-sm"
               >
                 Close
               </button>
-              <button
-                onClick={async () => {
-                  await markAllNotificationsRead();
-                  setHasUnread(false);
-                  setNotificationsOpen(false);
-                }}
-                className="text-sm text-brand"
-              >
-                Mark all as read
-              </button>
+
+              {!showBin && (
+                <button
+                  onClick={async () => {
+                    await markAllNotificationsRead();
+                    setHasUnread(false);
+                    setNotificationsOpen(false);
+                  }}
+                  className="text-sm text-brand"
+                >
+                  Mark all as read
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 {
-  "id": "21d123f5-59eb-4aa1-bd58-9872a462041c",
-  "prevId": "a4f26479-e9c5-45bf-a39a-064d7c3c7c3a",
+  "id": "18fe6722-a835-4e90-a16b-6ff079f67dc1",
+  "prevId": "a6e1d0e4-8efb-4b40-a6e2-3ae07c9a60ab",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -245,19 +245,19 @@
           "notNull": true,
           "default": "ARRAY[]::uuid[]"
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
         "deleted_by": {
           "name": "deleted_by",
           "type": "uuid[]",
           "primaryKey": false,
           "notNull": true,
           "default": "ARRAY[]::uuid[]"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},

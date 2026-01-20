@@ -143,6 +143,6 @@ export const notifications = pgTable("notifications", {
   message: text("message"),
   type: varchar("type", { length: 30 }).notNull(),
   readBy: uuid("read_by").array().notNull().default(sql`ARRAY[]::uuid[]`),
+  deletedBy: uuid("deleted_by").array().notNull().default(sql`ARRAY[]::uuid[]`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
-
