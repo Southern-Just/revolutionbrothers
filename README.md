@@ -9,40 +9,6 @@
 <td width="50%" valign="top">
 
 
-
-</td>
-<td width="50%" valign="top">
-🔗 https://revolutionbrothers.vercel.app/
-  
-### Test Logins
-
-| Role      | Username (email)    | Password |
-| --------- | ------------------- | -------- |
-| Treasurer | `testreasurer@gmail.com`| `8000`   |
-
-> These accounts are for demonstration and testing purposes only.
-> **Pin (temporary):** <strong>9095</strong>
-## Device
-### . Mobile 
-### . Inspect (ratio (optimal) : 390 × 844  | 412 × 915)
-
----
-
-
-## Tech stack
-
-> **Next Js** .
-> **Database**: PostgreSQL (Neon) with **Drizzle ORM**
-> **Image Processing**: **ImageKit** (image upload, optimization, and delivery) .
-* * **Deployment**: **Vercel**
-
-</td>
-</tr>
-
-</table>
-
----
-
 ### Clone the project
 
 ```bash
@@ -83,3 +49,35 @@ http://localhost:3000
 ---
 
 Happy Coding !!
+</td>
+<td width="50%" valign="top">
+🔗 https://revolutionbrothers.vercel.app/
+  
+### Test Logins
+
+| Role      | Username (email)    | Password |
+| --------- | ------------------- | -------- |
+| Treasurer | `testreasurer@gmail.com`| `8000`   |
+
+> These accounts are for demonstration and testing purposes only.
+> **Pin (temporary):** <strong>9095</strong>
+## Device
+### . Mobile 
+### . Inspect (ratio (optimal) : 390 × 844  | 412 × 915)
+
+---
+
+
+## Tech stack
+
+> **Next Js** .
+> **Database**: PostgreSQL (Neon) with **Drizzle ORM**
+> **Image Processing**: **ImageKit** (image upload, optimization, and delivery) .
+* * **Deployment**: **Vercel**
+
+</td>
+</tr>
+
+</table>
+
+---
