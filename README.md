@@ -9,7 +9,6 @@
 <td width="50%" valign="top">
 
 
-[https://github.com/user-attachments/assets/109f07a8-695c-4d39-95e6-c1fc436bec4a](https://github.com/user-attachments/assets/109f07a8-695c-4d39-95e6-c1fc436bec4a)
 
 </td>
 <td width="50%" valign="top">
