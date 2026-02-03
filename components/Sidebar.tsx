@@ -17,8 +17,8 @@ interface SidebarProps {
 
 const Sidebar = ({ open, onClose }: SidebarProps) => {
   const router = useRouter();
-  const [userRole, setUserRole] = useState<string | null>(null); // Track user role
-  const [loading, setLoading] = useState(true); // Prevent rendering until role is checked
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -27,7 +27,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
         setUserRole(user?.role || null);
       } catch (error) {
         console.error("Error fetching user role:", error);
-        setUserRole(null); // Default to null on error
+        setUserRole(null);
       } finally {
         setLoading(false);
       }
