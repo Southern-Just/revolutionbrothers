@@ -10,8 +10,8 @@ import {
 import {
   updateTransactionStatus,
   uploadTransactionsCSV,
-} from "@/lib/actions/admin.transactions"; // Added uploadTransactionsCSV
-import { getAllUsers } from "@/lib/actions/user.systeme"; // Added for user selection
+} from "@/lib/actions/admin.transactions";
+import { getAllUsers } from "@/lib/actions/user.systeme";
 import { toast } from "sonner";
 
 interface Transaction {
@@ -341,7 +341,7 @@ export default function Transactions({
         </button>
       </div>
 
-      <div className="overflow-y-auto max-h-[calc(100vh-200px)] rounded-lg border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-80px)] rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
