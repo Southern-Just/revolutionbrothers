@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/user.actions";
 import { getAllUsers, updateUserProfile } from "@/lib/actions/user.systeme";
 import { createNotification } from "@/lib/actions/notification.actions";
+import AccountProfile from "@/components/AccountProfile";
 
 type StoredFile = {
   name: string;
@@ -111,7 +112,10 @@ export default function Page() {
 
   if (loading) {
     return (
-      <main className="mx-auto mt-6 text-center text-gray-500">Loading…</main>
+      <main className="mx-auto mt-6 text-center text-gray-500 flex flex-col justify-center items-center gap-14">
+        <Image src="/images/load-bg.svg" width={248} height={248} alt="Loading board" className="" />
+        <p>Board Comin up</p>
+        </main>
     );
   }
 
