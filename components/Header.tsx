@@ -58,8 +58,13 @@ const Header = () => {
   function saveToCache(bin: boolean, data: Notifications) {
     sessionStorage.setItem(
       getCacheKey(bin),
-      JSON.stringify(data)
+      JSON.stringify(data),
     );
+  }
+
+  function invalidateCache() {
+    sessionStorage.removeItem(CACHE_INBOX);
+    sessionStorage.removeItem(CACHE_BIN);
   }
 
   async function loadNotifications(bin = showBin) {
@@ -69,7 +74,7 @@ const Header = () => {
     if (cached) {
       setNotifications(cached);
       setHasUnread(
-        cached.some((n) => !n.readBy.includes(userId))
+        cached.some((n) => !n.readBy.includes(userId)),
       );
       return;
     }
@@ -77,17 +82,36 @@ const Header = () => {
     try {
       const data = await getUserNotifications(bin);
       setNotifications(data);
-      setHasUnread(data.some((n) => !n.readBy.includes(userId)));
+      setHasUnread(
+        data.some((n) => !n.readBy.includes(userId)),
+      );
       saveToCache(bin, data);
     } catch {
       toast.error("Failed to load notifications");
     }
   }
 
-  function invalidateCache() {
-    sessionStorage.removeItem(CACHE_INBOX);
-    sessionStorage.removeItem(CACHE_BIN);
-  }
+  useEffect(() => {
+    if (!userId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const data = await getUserNotifications(false);
+
+        setHasUnread(
+          data.some((n) => !n.readBy.includes(userId)),
+        );
+
+        saveToCache(false, data);
+
+        if (notificationsOpen && !showBin) {
+          setNotifications(data);
+        }
+      } catch {}
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [userId, notificationsOpen, showBin]);
 
   return (
     <>
@@ -164,7 +188,7 @@ const Header = () => {
                   showBin={showBin}
                   onDeleted={() => {
                     setNotifications((prev) =>
-                      prev.filter((x) => x.id !== n.id)
+                      prev.filter((x) => x.id !== n.id),
                     );
                     invalidateCache();
                   }}

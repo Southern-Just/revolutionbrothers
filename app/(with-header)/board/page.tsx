@@ -192,6 +192,7 @@ export default function Page() {
     target === "terms" ? setTerms(payload) : setMinutes(payload);
 
     toast.success("File updated");
+    sessionStorage.removeItem("notifications:inbox");
     e.target.value = "";
   }
 

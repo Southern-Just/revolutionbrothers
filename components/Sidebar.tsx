@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect } from "react"; // Add useState and useEffect
+import { useState, useEffect } from "react";
 import {
   getTermsPdf,
   logout,
   getCurrentUser,
-} from "@/lib/actions/user.actions"; // Import getCurrentUser
+} from "@/lib/actions/user.actions";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -42,9 +42,8 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
     router.replace("/sign-in");
   };
 
-  // Show loading state or nothing while checking (prevents flash)
   if (loading) {
-    return null; // Or a minimal loading indicator if preferred
+    return null;
   }
 
   return (
@@ -96,10 +95,12 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
               </Link>
             ))}
           </nav>
-
-          {/* Conditionally render Secretary board link only for secretaries */}
           {userRole === "secretary" && (
-            <Link href="/board" className="flex justify-center">
+            <Link
+              href="/board"
+              onClick={onClose}
+              className="flex justify-center"
+            >
               <Image
                 src="/icons/transaction.svg"
                 width={22}
@@ -109,6 +110,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
               <p className="text-gray-400 text-xs px-2 py-4">Secretary board</p>
             </Link>
           )}
+
           <div className=" space-y-8">
             <button
               onClick={handleLogout}
