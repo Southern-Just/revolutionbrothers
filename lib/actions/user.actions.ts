@@ -178,7 +178,7 @@ export async function logout() {
 }
 
 export async function signUp({ email, password, pin }: SignUpInput) {
-  if (pin !== "9095") throw new Error("INVALID_PIN");
+  if (pin !== "0802") throw new Error("INVALID_PIN");
 
   const normalizedEmail = email.toLowerCase().trim();
   const username = normalizedEmail.split("@")[0];
