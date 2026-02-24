@@ -31,6 +31,14 @@ interface SuggestedProject {
   status: "suggested" | "approved" | "active" | "completed";
 }
 
+interface StepItem {
+  id: string;
+  title: string;
+  details: string;
+  attachments: File[];
+  open: boolean;
+}
+
 const END_DATE = new Date("2026-03-06T00:00:00");
 
 export default function InvestmentsTemporary() {
@@ -38,9 +46,39 @@ export default function InvestmentsTemporary() {
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
   const [project, setProject] = useState<SuggestedProject | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [amount, setAmount] = useState<string>("");
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [imageAttachments, setImageAttachments] = useState<File[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const [steps, setSteps] = useState<StepItem[]>([
+        {
+      id: crypto.randomUUID(),
+      title: "Securing land and necessaries",
+      details: "",
+      attachments: [],
+      open: false,
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Planning and land preparation",
+      details: "",
+      attachments: [],
+      open: false,
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Input procurement and logistics",
+      details: "",
+      attachments: [],
+      open: false,
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Planting and all matters of management",
+      details: "",
+      attachments: [],
+      open: false,
+    },
+  ]);
 
   useEffect(() => {
     const init = async () => {
@@ -51,9 +89,7 @@ export default function InvestmentsTemporary() {
         (inv: SuggestedProject) =>
           inv.name.toLowerCase() === "seasonal farming",
       );
-      if (seasonal) {
-        setProject(seasonal);
-      }
+      if (seasonal) setProject(seasonal);
       setLoading(false);
     };
     init();
@@ -93,31 +129,48 @@ export default function InvestmentsTemporary() {
     const result = await approveInvestment({ investmentId: project.id });
     if (result.success) {
       const investments = await getInvestments();
-      const seasonal = investments.find(
+      const updated = investments.find(
         (inv: SuggestedProject) => inv.id === project.id,
       );
-      if (seasonal) setProject(seasonal);
+      if (updated) setProject(updated);
     }
+  };
+
+  const toggleStep = (id: string) => {
+    setSteps((prev) =>
+      prev.map((step) =>
+        step.id === id ? { ...step, open: !step.open } : step,
+      ),
+    );
+  };
+
+  const updateStepDetails = (id: string, value: string) => {
+    setSteps((prev) =>
+      prev.map((step) =>
+        step.id === id ? { ...step, details: value } : step,
+      ),
+    );
+  };
+
+  const updateStepAttachments = (id: string, files: FileList | null) => {
+    if (!files) return;
+    setSteps((prev) =>
+      prev.map((step) =>
+        step.id === id
+          ? { ...step, attachments: Array.from(files) }
+          : step,
+      ),
+    );
   };
 
   const handleProceed = () => {
-    if (project?.status === "approved") {
-      router.push("/revolution");
-    }
-  };
-
-  const handleAttachmentChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    if (!event.target.files) return;
-    setAttachments(Array.from(event.target.files));
+    if (project?.status === "approved") router.push("/revolution");
   };
 
   if (loading || !project) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <h2 className="text-2xl font-bold text-brand">Seasonal Farming</h2>
-        <p>investment...</p>
+        <p className="text-2xl text-brand">...</p>
       </main>
     );
   }
@@ -129,110 +182,150 @@ export default function InvestmentsTemporary() {
       <div className="w-full max-w-4xl space-y-8">
 
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">
-            Seasonal Farming
-          </h1>
+          <h1 className="text-2xl font-bold">Seasonal Farming</h1>
           {timeLeft && (
             <p className="text-brand font-semibold text-sm">
-              Closes in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m{" "}
-              {timeLeft.seconds}s
+              Closes in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
             </p>
           )}
         </div>
 
-        <div className="relative w-full h-72 rounded-2xl overflow-hidden">
+        <div className="relative w-full h-80 rounded-2xl overflow-hidden">
           <Image
             src="/images/farm.jpg"
             alt="Seasonal Farming"
             fill
             className="object-cover"
           />
-        </div>
 
-        <section className="rounded-2xl bg-white/5 border p-6 space-y-4">
-          <h2 className="font-semibold text-lg">Project Steps</h2>
-          <ol className="list-decimal list-inside text-sm space-y-2 text-gray-300">
-            <li>Planning and land preparation</li>
-            <li>Input procurement and logistics</li>
-            <li>Planting and irrigation management</li>
-            <li>Overseas market linkage</li>
-            <li>Harvesting and distribution</li>
-          </ol>
-        </section>
+          <div className="absolute inset-0 flex items-end justify-between p-4">
 
-        <section className="rounded-2xl bg-white/5 border p-6 space-y-4">
-          <h2 className="font-semibold text-lg">Attachments</h2>
-          <input
-            type="file"
-            multiple
-            onChange={handleAttachmentChange}
-            className="text-sm"
-          />
-          <div className="text-xs text-gray-400">
-            {attachments.length} file(s) selected
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleVote}
+                className={`w-10 h-10 rounded-full border flex items-center justify-center p-1 ${
+                  project.hasVoted
+                    ? "bg-green-500 border-green-500"
+                    : "border-white bg-white/30"
+                }`}
+              >
+                {project.hasVoted && (
+                  <Image
+                    src="/icons/home.svg"
+                    alt="Voted"
+                    width={16}
+                    height={16}
+                  />
+                )}
+              </button>
+              <span className="text-white text-md font-semibold">
+                Vote
+              </span>
+            </div>
+
+            <label className="cursor-pointer bg-white/50 p-1 rounded-full">
+              <Image
+                src="/icons/sunset.svg"
+                alt="Attach"
+                width={32}
+                height={32}
+              />
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) =>
+                  e.target.files &&
+                  setImageAttachments(Array.from(e.target.files))
+                }
+              />
+            </label>
           </div>
-        </section>
 
-        <section className="rounded-2xl bg-white/5 border p-6 space-y-4">
-          <h2 className="font-semibold text-lg">Investment Amount</h2>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Enter amount in KES"
-            className="w-full p-3 rounded-xl border bg-white/10 text-sm"
-          />
-        </section>
-
-        <section className="rounded-2xl bg-white/5 border p-6 space-y-4">
-          <div className="flex justify-between text-sm">
-            <span>Votes</span>
-            <span className="font-semibold">{project.votes}</span>
+          <div className="absolute top-4 right-4 bg-gray-100/50 text-gray-500 px-2 py-2 rounded-xs text-lg font-bold">
+           <span className="text-md"> KES</span> 50000
           </div>
 
-          <div className="h-3 rounded-full bg-black/30 overflow-hidden">
+          <div className="absolute bottom-0 left-0 h-2 bg-black/40 w-full">
             <div
-              className="h-full bg-brand rounded-full transition-all duration-500"
+              className="h-full bg-brand transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
+        </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleVote}
-              className={`flex-1 py-2 rounded-xl ${
-                project.hasVoted
-                  ? "bg-brand text-white"
-                  : "border border-brand text-brand"
-              }`}
+        <section className="space-y-4">
+          {steps.map((step) => (
+            <div
+              key={step.id}
+              className="rounded-2xl bg-white/5 border p-4 space-y-3"
             >
-              {project.hasVoted ? "Voted" : "Vote"}
-            </button>
-
-            {currentUser &&
-              OFFICIAL_ROLES.includes(
-                currentUser.role as
-                  | "chairperson"
-                  | "secretary"
-                  | "treasurer",
-              ) && (
+              <div className="flex justify-between items-center">
+                <h2 className="font-semibold text-sm">
+                  {step.title}
+                </h2>
                 <button
-                  onClick={handleApprove}
-                  className="flex-1 py-2 rounded-xl bg-blue-600 text-white"
+                  onClick={() => toggleStep(step.id)}
+                  className="w-8 h-8 rounded-full border flex items-center justify-center"
                 >
-                  Approve
+                  <Image
+                    src="/icons/plus.svg"
+                    alt="Expand"
+                    width={14}
+                    height={14}
+                  />
                 </button>
+              </div>
+
+              {step.open && (
+                <div className="space-y-3">
+                  <textarea
+                    value={step.details}
+                    onChange={(e) =>
+                      updateStepDetails(step.id, e.target.value)
+                    }
+                    placeholder="Add more details..."
+                    className="w-full p-2 rounded-xl bg-white/10 border text-sm"
+                  />
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) =>
+                      updateStepAttachments(step.id, e.target.files)
+                    }
+                    className="text-xs"
+                  />
+                  <div className="text-xs text-gray-400">
+                    {step.attachments.length} file(s)
+                  </div>
+                </div>
               )}
-          </div>
+            </div>
+          ))}
         </section>
+
+        {currentUser &&
+          OFFICIAL_ROLES.includes(
+            currentUser.role as
+              | "chairperson"
+              | "secretary"
+              | "treasurer",
+          ) && (
+            <button
+              onClick={handleApprove}
+              className="w-full py-3 rounded-2xl bg-brand text-white font-semibold"
+            >
+              Approved Investment
+            </button>
+          )}
 
         <button
           disabled={project.status !== "approved"}
           onClick={handleProceed}
-          className={`w-full py-3 rounded-2xl font-semibold transition ${
+          className={`w-full py-3 rounded-2xl font-semibold ${
             project.status === "approved"
               ? "bg-brand text-white"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-gray-300 text-gray-500"
           }`}
         >
           Proceed to Revolution
